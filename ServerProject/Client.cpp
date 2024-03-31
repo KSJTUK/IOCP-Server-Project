@@ -42,6 +42,7 @@ bool Client::SendMsg(std::string_view message) {
 	}
 
 	OverlappedEx sendIO{ };
+	ZeroMemory(std::addressof(sendIO), sizeof(OverlappedEx));
 	std::copy(message.begin(), message.end(), m_sendBuffer);
 	sendIO.buffer.len = static_cast<ULONG>(message.size());
 	sendIO.buffer.buf = m_sendBuffer;	

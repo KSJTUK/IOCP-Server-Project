@@ -117,6 +117,7 @@ void ServerFramework::WorkThread() {
 
 		// client disconnected
 		if (not ioComplete or (ioComplete and ioSize == 0)) {
+			Close(pClient->GetIndex());
 			pClient->CloseSocket();
 			continue;
 		}
@@ -152,7 +153,7 @@ void ServerFramework::AcceptThread() {
 
 		Client& client{ optionalClient.value().get() };
 
-		SOCKET socket = ::accept(m_listeningSocket, reinterpret_cast<sockaddr*>(std::addressof(clientAddress)), std::addressof(addressLength));
+		SOCKET socket{ ::accept(m_listeningSocket, reinterpret_cast<sockaddr*>(std::addressof(clientAddress)), std::addressof(addressLength)) };
 		if (socket == INVALID_SOCKET) {
 			continue;
 		}
@@ -180,7 +181,20 @@ std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() 
 	return std::nullopt;
 }
 
-// ------------------------------------------------------------------------------------------------
+void EchoServer::Receive(__int32 clientIndex, std::string_view recvMessage) {
+	std::cout << std::format("Client [{}] Send: {}\n", clientIndex, recvMessage);
+}
+
+void EchoServer::Close(__int32 clientIndex) {
+	Client& client{ GetClient(clientIndex) };
+	sockaddr_in clientAddress{ };
+	int addressLength{ sizeof(sockaddr_in) };
+
+	char clientIP[INET_ADDRSTRLEN]{ };
+	::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
+	std::cout << std::format("Client [IP: {} | SOCKET: {} | index: {}] is disconnected\n", clientIP, client.GetSocket(), client.GetIndex());
+}
+
 bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 	Client& client{ GetClient(clientIndex) };
 	return client.SendMsg(message);
@@ -192,8 +206,9 @@ void EchoServer::ProcessingPacket() {
 		if (packet.length == 0) {
 			std::this_thread::yield();
 		}
-
-		SendMsg(packet.toWhom, packet.msg);
+		else {
+			SendMsg(packet.toWhom, packet.msg);
+		}
 	}
 }
 

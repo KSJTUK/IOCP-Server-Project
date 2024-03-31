@@ -47,9 +47,9 @@ private:
 class EchoServer : public ServerFramework {
 public:
 	virtual void Connect(__int32 clientIndex) override { };
-	virtual void Receive(__int32 clientIndex, std::string_view recvMessage) { };
+	virtual void Receive(__int32 clientIndex, std::string_view recvMessage);
 	virtual void Receive(__int32 clientIndex, std::size_t dataSize, const char* recvData) override { };
-	virtual void Close(__int32 clientIndex) override { };
+	virtual void Close(__int32 clientIndex) override;
 
 	//bool SendMsg(__int32 clientIndex, DWORD dataSize, const char* data);
 	bool SendMsg(__int32 clientIndex, std::string_view message);

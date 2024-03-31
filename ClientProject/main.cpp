@@ -10,7 +10,7 @@
 #include <iostream>
 
 std::string defaultPort{ "10000" };
-std::string serverIP{ "192.168.62.126" };
+std::string serverIP{ "172.30.1.50" };
 
 int main()
 {

@@ -12,6 +12,7 @@
 #include <format>
 #include <optional>
 #include <iostream>
+#include <functional>
 #include <syncstream>
 
 inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
