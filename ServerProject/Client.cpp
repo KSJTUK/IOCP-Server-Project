@@ -2,16 +2,25 @@
 #include "Client.h"
 
 Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET }  {
-	
+	ZeroMemory(std::addressof(m_recvIO), sizeof(OverlappedEx));
 }
 
 Client::~Client() { }
 
-bool Client::BindIOCP(HANDLE bindHandle, SOCKET socket) {
+bool Client::Connect(HANDLE cpHandle, SOCKET socket) {
+	m_socket = socket;
+
+	if (not BindIOCP(cpHandle)) {
+		return false;
+	}
+	return BindRecv();
+}
+
+bool Client::BindIOCP(HANDLE bindHandle) {
 	HANDLE cpHandle{ ::CreateIoCompletionPort(
 		reinterpret_cast<HANDLE>(m_socket),
 		bindHandle,
-		m_socket,
+		reinterpret_cast<ULONG_PTR>(this),
 		0
 	) };
 
@@ -57,7 +66,7 @@ bool Client::SendMsg(std::string_view message) {
 bool Client::BindRecv() {
 	DWORD flag{ };
 	DWORD recvSize{ };
-
+	
 	m_recvIO.buffer.len = MAX_BUFFER_SIZE;
 	m_recvIO.buffer.buf = m_recvBuffer;
 	m_recvIO.ioType = IO_TYPE::RECV;
@@ -71,8 +80,8 @@ bool Client::BindRecv() {
 		nullptr
 		) };
 
-	if (recvResult == SOCKET_ERROR and ::WSAGetLastError() == ERROR_IO_PENDING) {
-		// recv fail
+	if (recvResult == SOCKET_ERROR and ::WSAGetLastError() != ERROR_IO_PENDING) {
+		std::cout << std::format("[Exception] WSARecv Function Fail, Error Code: {}\n", ::WSAGetLastError());
 		return false;
 	}
 

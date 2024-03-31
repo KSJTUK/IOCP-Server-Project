@@ -13,7 +13,8 @@ public:
 	const char* GetRecvBuffer() const { return m_recvBuffer; }
 
 public:
-	bool BindIOCP(HANDLE cpHandle, SOCKET socket);
+	bool Connect(HANDLE cpHandle, SOCKET socket);
+	bool BindIOCP(HANDLE cpHandle);
 
 	bool SendMsg(std::string_view message);
 	bool BindRecv();

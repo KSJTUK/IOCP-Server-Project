@@ -5,6 +5,7 @@
 
 #pragma comment (lib, "ws2_32.lib")
 
+#include <deque>
 #include <thread>
 #include <vector>
 #include <memory>
@@ -12,6 +13,8 @@
 #include <optional>
 #include <iostream>
 #include <syncstream>
+
+inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
 
 enum class IO_TYPE {
 	RECV,
@@ -23,4 +26,10 @@ struct OverlappedEx {
 	WSABUF buffer{ };
 	SOCKET socket{ };
 	IO_TYPE ioType{ };
+};
+
+struct ChatPacket {
+	short length{ };
+	short toWhom{ };
+	char msg[MAX_PACKET_SIZE - sizeof(short) * 2];
 };

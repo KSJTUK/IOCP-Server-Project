@@ -8,7 +8,7 @@ ServerFramework::ServerFramework() {
 		return;
 	}
 
-	m_listeningSocket = ::WSASocket(PF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, NULL, 0);
+	m_listeningSocket = ::WSASocket(PF_INET, SOCK_STREAM, IPPROTO_TCP, nullptr, NULL, WSA_FLAG_OVERLAPPED);
 	if (m_listeningSocket == INVALID_SOCKET) {
 		std::cout << std::format("[Fatal Error] WSASocket() Fucntion Fail (listening socket create fail), Error Code: {}\n", ::WSAGetLastError());
 		return;
@@ -85,22 +85,22 @@ bool ServerFramework::CreateWorkThread(unsigned __int32 maxThread) {
 }
 
 bool ServerFramework::CreateAcceptThread() {
-	m_acceptThread = std::move(std::jthread{ [this]() { AcceptThread(); } });
+	m_acceptThread = std::jthread{ [this]() { AcceptThread(); } };
 	return true;
 }
 
 void ServerFramework::WorkThread() {
-	bool ioComplete{ };
+	bool ioComplete{ true };
 	DWORD ioSize{ };
 	LPOVERLAPPED overlapped{ };
-	Client client{ 0 };
+	Client* pClient{ nullptr };
 
 	while (true) {
 		// ::GetQueuedCompletionStatus return -> TRUE: i/o complete -> thread awake, FALSE: waiting time over -> thread sleep again
 		ioComplete = ::GetQueuedCompletionStatus(
 			m_cpHandle,												// completion port handle
 			std::addressof(ioSize),									// pointer of byte size to save completed io
-			reinterpret_cast<SOCKET*>(std::addressof(client)),						// pointer of context to save info of completed io
+			reinterpret_cast<PULONG_PTR>(std::addressof(pClient)),	// pointer of context to save info of completed io
 			std::addressof(overlapped),								// overlaepped struct pointer for async io work
 			INFINITE												// Waiting time
 		);
@@ -115,10 +115,9 @@ void ServerFramework::WorkThread() {
 			continue;
 		}
 
-
 		// client disconnected
 		if (not ioComplete or (ioComplete and ioSize == 0)) {
-			client.CloseSocket();
+			pClient->CloseSocket();
 			continue;
 		}
 
@@ -126,16 +125,16 @@ void ServerFramework::WorkThread() {
 
 		// After Recv complete
 		if (overlappedEx.ioType == IO_TYPE::RECV) {
-			Receive(client.GetIndex(), client.GetRecvBuffer());
-			client.BindRecv();
+			Receive(pClient->GetIndex(), pClient->GetRecvBuffer());
+			pClient->BindRecv();
 		}
 		// After Send complete
 		else if (overlappedEx.ioType == IO_TYPE::SEND) {
-			client.SendComplete(ioSize);
+			pClient->SendComplete(ioSize);
 		}
 		else {
 			// exception
-			std::cout << std::format("[Exception] socket: {}\n", client.GetSocket());
+			std::cout << std::format("[Exception] socket: {}\n", pClient->GetSocket());
 		}
 	}
 }
@@ -158,22 +157,18 @@ void ServerFramework::AcceptThread() {
 			continue;
 		}
 
-		bool callSuccess{ client.BindIOCP(m_cpHandle, socket) };
+		bool callSuccess{ client.Connect(m_cpHandle, socket) };
 		if (not callSuccess) {
-			std::cout << std::format("[Exception] Client Socket bind fail, Error Code: {}\n", ::WSAGetLastError());
-			return;
-		}
-
-		callSuccess = client.BindRecv();
-		if (not callSuccess) {
+			client.CloseSocket(true);
 			return;
 		}
 
 		char clientIP[INET_ADDRSTRLEN]{ };
 		::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-		std::cout << std::format("Client [IP: {} | SOCET: {}] is connected\n", clientIP, client.GetSocket());
+		std::cout << std::format("Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
+
+		++m_connectedClientSize;
 	}
-	++m_connectedClientSize;
 }
 
 std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() {
@@ -185,7 +180,41 @@ std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() 
 	return std::nullopt;
 }
 
+// ------------------------------------------------------------------------------------------------
 bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 	Client& client{ GetClient(clientIndex) };
 	return client.SendMsg(message);
+}
+
+void EchoServer::ProcessingPacket() {
+	while (m_processingPacket) { 
+		ChatPacket packet{ std::move(DequePacketData()) };
+		if (packet.length == 0) {
+			std::this_thread::yield();
+		}
+
+		SendMsg(packet.toWhom, packet.msg);
+	}
+}
+
+ChatPacket EchoServer::DequePacketData() {
+	std::lock_guard<std::mutex> pakcetLock{ m_packetLock };
+	if (m_packetData.empty()) {
+		return ChatPacket{ };
+	}
+
+	ChatPacket packet{ std::move(m_packetData.front()) };
+	m_packetData.pop_front();
+	return packet;
+}
+
+void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
+	m_processingPacket = true;
+	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
+
+	StartServer(maxClient, maxThread);
+}
+
+void EchoServer::End() {
+	m_processingPacket = false;
 }
