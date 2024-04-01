@@ -34,7 +34,7 @@ bool ServerFramework::BindAndListen(const unsigned __int16 port) {
 		std::cout << std::format("[Socket Error] bind() function fail, Error Code: {}\n", ::WSAGetLastError());
 		return false;
 	}
-
+	
 	if (::listen(m_listeningSocket, SOMAXCONN) == SOCKET_ERROR) {
 		std::cout << std::format("[Socket Error] listen() function fail, Error Code: {}\n", ::WSAGetLastError());
 		return false;
@@ -192,7 +192,7 @@ void EchoServer::Close(__int32 clientIndex) {
 
 	char clientIP[INET_ADDRSTRLEN]{ };
 	::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-	std::cout << std::format("Client [IP: {} | SOCKET: {} | index: {}] is disconnected\n", clientIP, client.GetSocket(), client.GetIndex());
+	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", clientIP, client.GetSocket(), client.GetIndex());
 }
 
 bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
@@ -203,11 +203,11 @@ bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 void EchoServer::ProcessingPacket() {
 	while (m_processingPacket) { 
 		ChatPacket packet{ std::move(DequePacketData()) };
-		if (packet.length == 0) {
-			std::this_thread::yield();
+		if (packet.length > 0) {
+			SendMsg(packet.toWhom, packet.msg);
 		}
 		else {
-			SendMsg(packet.toWhom, packet.msg);
+			std::this_thread::yield();
 		}
 	}
 }

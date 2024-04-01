@@ -68,6 +68,7 @@ bool Client::BindRecv() {
 	DWORD flag{ };
 	DWORD recvSize{ };
 	
+	std::memset(std::addressof(m_recvBuffer), 0, sizeof(MAX_BUFFER_SIZE));
 	m_recvIO.buffer.len = MAX_BUFFER_SIZE;
 	m_recvIO.buffer.buf = m_recvBuffer;
 	m_recvIO.ioType = IO_TYPE::RECV;

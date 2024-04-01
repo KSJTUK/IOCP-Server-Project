@@ -10,12 +10,12 @@
 #include <iostream>
 
 std::string defaultPort{ "10000" };
-std::string serverIP{ "172.30.1.50" };
+std::string serverIP{ "192.168.21.180" };
 
 int main()
 {
     WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData)) {
+    if (::WSAStartup(MAKEWORD(2, 2), &wsaData)) {
         std::cout << "WSAStartup Fail" << std::endl;
         exit(EXIT_FAILURE);
     }
