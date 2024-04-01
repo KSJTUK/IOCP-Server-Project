@@ -31,6 +31,8 @@ private:
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
 
+	std::mutex m_defaultLock{ };
+
 	HANDLE m_cpHandle{ nullptr };
 
 	unsigned __int32 m_connectedClientSize{ };
@@ -63,7 +65,10 @@ private:
 
 private:
 	bool m_processingPacket{ true };
+
+	std::condition_variable cv; 
+
 	std::jthread m_procPacketThread{ };
-	std::mutex m_packetLock{ };
+	std::mutex m_lock{ };
 	std::deque<ChatPacket> m_packetData{ };
 };

@@ -92,7 +92,8 @@ bool ServerFramework::CreateAcceptThread() {
 void ServerFramework::WorkThread() {
 	bool ioComplete{ true };
 	DWORD ioSize{ };
-	LPOVERLAPPED overlapped{ };
+	OverlappedEx* pOverlappedEx{ };
+	LPOVERLAPPED pOverlapped{ };
 	Client* pClient{ nullptr };
 
 	while (true) {
@@ -101,36 +102,37 @@ void ServerFramework::WorkThread() {
 			m_cpHandle,												// completion port handle
 			std::addressof(ioSize),									// pointer of byte size to save completed io
 			reinterpret_cast<PULONG_PTR>(std::addressof(pClient)),	// pointer of context to save info of completed io
-			std::addressof(overlapped),								// overlaepped struct pointer for async io work
+			std::addressof(pOverlapped),								// overlaepped struct pointer for async io work
 			INFINITE												// Waiting time
 		);
 
 		// terminate client Thread
-		if (ioComplete and ioSize == 0 and overlapped == nullptr) {
+		if (ioComplete and ioSize == 0 and pOverlapped == nullptr) {
 			m_workThreadRunning = false;
 			continue;
 		}
 
-		if (overlapped == nullptr) {
+		if (pOverlapped == nullptr) {
 			continue;
 		}
 
 		// client disconnected
 		if (not ioComplete or (ioComplete and ioSize == 0)) {
+			std::cout << "close" << std::endl;
 			Close(pClient->GetIndex());
 			pClient->CloseSocket();
 			continue;
 		}
 
-		OverlappedEx overlappedEx{ std::move(*overlapped) };
+		pOverlappedEx = reinterpret_cast<OverlappedEx*>(pOverlapped);
 
 		// After Recv complete
-		if (overlappedEx.ioType == IO_TYPE::RECV) {
+		if (pOverlappedEx->ioType == IO_TYPE::RECV) {
 			Receive(pClient->GetIndex(), pClient->GetRecvBuffer());
 			pClient->BindRecv();
 		}
 		// After Send complete
-		else if (overlappedEx.ioType == IO_TYPE::SEND) {
+		else if (pOverlappedEx->ioType == IO_TYPE::SEND) {
 			pClient->SendComplete(ioSize);
 		}
 		else {
@@ -182,7 +184,7 @@ std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() 
 }
 
 void EchoServer::Receive(__int32 clientIndex, std::string_view recvMessage) {
-	std::lock_guard<std::mutex> packetGuard(m_packetLock);
+	std::lock_guard<std::mutex> packetGuard(m_lock);
 	ChatPacket packet{ static_cast<short>(recvMessage.size()), static_cast<short>(clientIndex) };
 	std::copy(recvMessage.begin(), recvMessage.end(), packet.msg);
 	m_packetData.emplace_back(packet);
@@ -195,17 +197,12 @@ void EchoServer::Close(__int32 clientIndex) {
 
 	char clientIP[INET_ADDRSTRLEN]{ };
 	::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", clientIP, client.GetSocket(), client.GetIndex());
+	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex());
 }
 
 bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 	Client& client{ GetClient(clientIndex) };
-	bool sendSuccess{ client.SendMsg(message) };
-	if (sendSuccess) {
-		std::cout << std::format("Client [{}] Send: {}\n", clientIndex, message);
-	}
-
-	return sendSuccess;
+	return client.SendMsg(message);
 }
 
 void EchoServer::ProcessingPacket() {
@@ -221,7 +218,7 @@ void EchoServer::ProcessingPacket() {
 }
 
 ChatPacket EchoServer::DequePacketData() {
-	std::unique_lock<std::mutex> packetLock{ m_packetLock };
+	std::unique_lock<std::mutex> packetLock{ m_lock };
 	if (m_packetData.empty()) {
 		return ChatPacket{ };
 	}

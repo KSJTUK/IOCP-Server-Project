@@ -41,20 +41,17 @@ bool Client::SendMsg(std::string_view message) {
 		return false;
 	}
 
-	OverlappedEx sendIO{ };
-	std::memset(std::addressof(sendIO), 0, sizeof(OverlappedEx));
-
 	std::copy(message.begin(), message.end(), m_sendBuffer);
-	sendIO.buffer.len = static_cast<ULONG>(message.size());
-	sendIO.buffer.buf = m_sendBuffer;	
-	sendIO.ioType = IO_TYPE::SEND;
+	m_sendIO.buffer.len = static_cast<ULONG>(message.size());
+	m_sendIO.buffer.buf = m_sendBuffer;	
+	m_sendIO.ioType = IO_TYPE::SEND;
 
 	int sendResult{ ::WSASend(m_socket,
-		std::addressof(sendIO.buffer),
+		std::addressof(m_sendIO.buffer),
 		1,
 		std::addressof(sendSize),
 		0,
-		std::addressof(sendIO.overlapped),
+		reinterpret_cast<LPOVERLAPPED>(std::addressof(m_sendIO)),
 		nullptr
 	) };
 
@@ -79,7 +76,7 @@ bool Client::BindRecv() {
 		1,											// num of recv buffer 
 		std::addressof(recvSize),
 		std::addressof(flag) ,
-		std::addressof(m_recvIO.overlapped),
+		reinterpret_cast<LPOVERLAPPED>(std::addressof(m_recvIO)),
 		nullptr
 		) };
 
@@ -106,5 +103,6 @@ void Client::CloseSocket(bool forcedClose) {
 }
 
 void Client::SendComplete(DWORD sendSize) {
+	std::cout << std::format("Send To Client [{}]: {}\n", m_index, m_sendBuffer);
 	std::memset(m_sendBuffer, 0, MAX_BUFFER_SIZE);
 }

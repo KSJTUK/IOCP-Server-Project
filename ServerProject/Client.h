@@ -27,6 +27,7 @@ private:
 
 	SOCKET m_socket{ INVALID_SOCKET };
 	OverlappedEx m_recvIO{ };
+	OverlappedEx m_sendIO{ };
 
 	char m_recvBuffer[MAX_BUFFER_SIZE]{ };
 	char m_sendBuffer[MAX_BUFFER_SIZE]{ };
