@@ -182,7 +182,10 @@ std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() 
 }
 
 void EchoServer::Receive(__int32 clientIndex, std::string_view recvMessage) {
-	std::cout << std::format("Client [{}] Send: {}\n", clientIndex, recvMessage);
+	std::lock_guard<std::mutex> packetGuard(m_packetLock);
+	ChatPacket packet{ static_cast<short>(recvMessage.size()), static_cast<short>(clientIndex) };
+	std::copy(recvMessage.begin(), recvMessage.end(), packet.msg);
+	m_packetData.emplace_back(packet);
 }
 
 void EchoServer::Close(__int32 clientIndex) {
@@ -197,13 +200,18 @@ void EchoServer::Close(__int32 clientIndex) {
 
 bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 	Client& client{ GetClient(clientIndex) };
-	return client.SendMsg(message);
+	bool sendSuccess{ client.SendMsg(message) };
+	if (sendSuccess) {
+		std::cout << std::format("Client [{}] Send: {}\n", clientIndex, message);
+	}
+
+	return sendSuccess;
 }
 
 void EchoServer::ProcessingPacket() {
 	while (m_processingPacket) { 
-		ChatPacket packet{ std::move(DequePacketData()) };
-		if (packet.length > 0) {
+		ChatPacket packet{ DequePacketData() };
+		if (packet.length != 0) {
 			SendMsg(packet.toWhom, packet.msg);
 		}
 		else {
@@ -213,7 +221,7 @@ void EchoServer::ProcessingPacket() {
 }
 
 ChatPacket EchoServer::DequePacketData() {
-	std::lock_guard<std::mutex> pakcetLock{ m_packetLock };
+	std::unique_lock<std::mutex> packetLock{ m_packetLock };
 	if (m_packetData.empty()) {
 		return ChatPacket{ };
 	}
@@ -224,7 +232,6 @@ ChatPacket EchoServer::DequePacketData() {
 }
 
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
-	m_processingPacket = true;
 	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
 
 	StartServer(maxClient, maxThread);

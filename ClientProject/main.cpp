@@ -65,6 +65,7 @@ int main()
         
         ::WSAWaitForMultipleEvents(1, std::addressof(event), TRUE, WSA_INFINITE, FALSE);
 
+        std::memset(data.buf, 0, ioSize);
         ::WSAGetOverlappedResult(socket, std::addressof(overlappedIO), std::addressof(ioSize), FALSE, std::addressof(flag));
         std::cout << std::format("전송완료 bytes: {}\n", ioSize);
 

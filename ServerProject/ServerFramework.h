@@ -62,7 +62,7 @@ private:
 	ChatPacket DequePacketData();
 
 private:
-	bool m_processingPacket{ };
+	bool m_processingPacket{ true };
 	std::jthread m_procPacketThread{ };
 	std::mutex m_packetLock{ };
 	std::deque<ChatPacket> m_packetData{ };
