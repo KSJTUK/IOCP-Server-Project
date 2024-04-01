@@ -105,4 +105,5 @@ void Client::CloseSocket(bool forcedClose) {
 void Client::SendComplete(DWORD sendSize) {
 	std::cout << std::format("Send To Client [{}]: {}\n", m_index, m_sendBuffer);
 	std::memset(m_sendBuffer, 0, MAX_BUFFER_SIZE);
+	std::memset(std::addressof(m_sendIO), 0, sizeof(OverlappedEx));
 }

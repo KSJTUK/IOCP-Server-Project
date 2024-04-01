@@ -118,7 +118,6 @@ void ServerFramework::WorkThread() {
 
 		// client disconnected
 		if (not ioComplete or (ioComplete and ioSize == 0)) {
-			std::cout << "close" << std::endl;
 			Close(pClient->GetIndex());
 			pClient->CloseSocket();
 			continue;
@@ -207,7 +206,7 @@ bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 
 void EchoServer::ProcessingPacket() {
 	while (m_processingPacket) { 
-		ChatPacket packet{ DequePacketData() };
+		ChatPacket packet{ std::move(DequePacketData()) };
 		if (packet.length != 0) {
 			SendMsg(packet.toWhom, packet.msg);
 		}
