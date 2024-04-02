@@ -149,7 +149,7 @@ void ServerFramework::AcceptThread() {
 		auto optionalClient{ GetEmptyClient() };
 		if (not optionalClient.has_value()) {
 			std::cout << std::format("[Client Connect Fail] Client Full: Current Client( {} )\n", m_connectedClientSize);
-			return;
+			continue;
 		}
 
 		Client& client{ optionalClient.value().get() };
