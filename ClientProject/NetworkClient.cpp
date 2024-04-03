@@ -121,7 +121,9 @@ bool NetworkClient::MainThread() {
 
 		OverlappedEx* data{ reinterpret_cast<OverlappedEx*>(pOverlapped) };
 		if (data->ioType == IO_TYPE::RECV) {
-			std::cout << std::format("수신 byte{}: {}\n", ioSize, data->buffer.buf);
+
+			TimeUtil::PrintTime();
+			std::cout << std::format(" 수신 byte{}: {}\n", ioSize, data->buffer.buf);
 			BindRecv();
 		}
 		else if (data->ioType == IO_TYPE::SEND) {

@@ -7,6 +7,8 @@ constexpr __int32 MAX_THREAD{ 4 };
 
 int main()
 {
+	TimeUtil::Init();
+
 	EchoServer echoServer{ };
 	echoServer.BindAndListen(DEFAULT_PORT);
 
@@ -15,4 +17,6 @@ int main()
 	while (true) {
 
 	}
+
+	TimeUtil::End();
 }

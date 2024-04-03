@@ -166,7 +166,9 @@ void NetworkServer::AcceptThread() {
 
 		char clientIP[INET_ADDRSTRLEN]{ };
 		::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-		std::cout << std::format("Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
+
+		TimeUtil::PrintTime();
+		std::cout << std::format("  Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
 
 		++m_connectedClientSize;
 	}
@@ -188,7 +190,8 @@ void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, std::string_
 	std::memcpy(packet.msg, recvMessage.data(), recvByte);
 	m_packetData.emplace_back(packet);
 
-	std::cout << std::format("From Client[{}] 수신: {}\n", clientIndex, packet.msg);
+	TimeUtil::PrintTime();
+	std::cout << std::format("  From Client[{}] 수신: {}\n", clientIndex, packet.msg);
 	m_cv.notify_one();
 }
 
