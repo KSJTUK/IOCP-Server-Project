@@ -14,18 +14,18 @@ public:
 	Client& GetClient(__int32 clientIndex);
 
 	virtual void Connect(__int32 clientIndex) PURE;
-	virtual void Receive(__int32 clientIndex, std::size_t recvSize, std::string_view recvMessage) PURE;
+	virtual void Receive(__int32 clinetIndex, std::size_t recvSize, char* pRecvData) PURE;
 	virtual void Close(__int32 clinetIndex) PURE;
 
 private:
 	void CreateClients(const unsigned __int32 maxClient);
-	bool CreateWorkThread(unsigned __int32 maxThread);
-	bool CreateAcceptThread();
+	bool RunIOWorkThread(unsigned __int32 maxThread);
+	bool RunAcceptThread();
 
 	void WorkThread();
 	void AcceptThread();
 
-	std::optional<std::reference_wrapper<Client>> GetEmptyClient();
+	std::optional<std::reference_wrapper<Client>> GetUnConnectedClient();
 
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
@@ -48,13 +48,12 @@ private:
 class EchoServer : public NetworkServer {
 public:
 	virtual void Connect(__int32 clientIndex) override { };
-	virtual void Receive(__int32 clientIndex, std::size_t recvByte, std::string_view recvMessage);
+	virtual void Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData);
 	virtual void Close(__int32 clientIndex) override;
 
-	//bool SendMsg(__int32 clientIndex, DWORD dataSize, const char* data);
-	bool SendMsg(__int32 clientIndex, std::string_view message);
+	bool SendPacket(__int32 clinetIndex, PacketHead* packet);
 
-	void Run(unsigned __int32 maxClient, unsigned __int32 maxThread);
+	void Run(unsigned __int32 maxClient, unsigned __int32 maxThread=0);
 	void End();
 
 private:
@@ -67,5 +66,5 @@ private:
 
 	std::jthread m_procPacketThread{ };
 	std::mutex m_lock{ };
-	std::deque<ChatPacket> m_packetData{ };
+	std::deque<PacketHead*> m_packetQueue{ };
 };

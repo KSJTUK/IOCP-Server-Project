@@ -2,6 +2,7 @@
 #include "Client.h"
 
 Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET }  {
+	m_recvBuffer = std::make_unique<char[]>(MAX_BUFFER_SIZE);
 	ZeroMemory(std::addressof(m_recvIO), sizeof(OverlappedEx));
 }
 
@@ -32,18 +33,13 @@ bool Client::BindIOCP(HANDLE bindHandle) {
 	return true;
 }
 
-bool Client::SendMsg(std::string_view message) {
+bool Client::SendPacketData(PacketHead* pPacket) {
 	DWORD sendSize{ };
 	DWORD flag{ };
 
-	if (message.size() >= MAX_BUFFER_SIZE) {
-		std::cout << std::format("[Send Fail] Send Message Over {} bytes", MAX_BUFFER_SIZE);
-		return false;
-	}
-
-	std::copy(message.begin(), message.end(), m_sendBuffer);
-	m_sendIO.buffer.len = static_cast<ULONG>(message.size());
-	m_sendIO.buffer.buf = m_sendBuffer;	
+	m_sendIO.buffer.len = pPacket->length;
+	m_sendIO.buffer.buf = new char[pPacket->length];
+	std::memcpy(m_sendIO.buffer.buf, pPacket, pPacket->length);
 	m_sendIO.ioType = IO_TYPE::SEND;
 
 	int sendResult{ ::WSASend(m_socket,
@@ -67,12 +63,12 @@ bool Client::BindRecv() {
 	DWORD recvSize{ };
 	
 	m_recvIO.buffer.len = MAX_BUFFER_SIZE;
-	m_recvIO.buffer.buf = m_recvBuffer;
+	m_recvIO.buffer.buf = m_recvBuffer.get();
 	m_recvIO.ioType = IO_TYPE::RECV;
 
 	int recvResult{ ::WSARecv(m_socket,						// socket for receiving data
-		std::addressof(m_recvIO.buffer),		// pointer of WSA buffer
-		1,											// num of recv buffer 
+		std::addressof(m_recvIO.buffer),					// pointer of WSA buffer
+		1,													// num of recv buffer 
 		std::addressof(recvSize),
 		std::addressof(flag) ,
 		reinterpret_cast<LPOVERLAPPED>(std::addressof(m_recvIO)),
@@ -102,6 +98,5 @@ void Client::CloseSocket(bool forcedClose) {
 }
 
 void Client::SendComplete(DWORD sendSize) {
-	std::memset(m_sendBuffer, 0, MAX_BUFFER_SIZE);
 	std::memset(std::addressof(m_sendIO), 0, sizeof(OverlappedEx));
 }

@@ -14,7 +14,28 @@
 #include <format>
 #include <thread>
 #include <chrono>
+#include <array>
 #include <iostream>
+
+#include "Packet.h"
+
+#pragma region FOR_TEST
+#define SERVER_TEST 0
+
+#if SERVER_TEST
+
+#define TEST_TIME_MS 10000
+#define MIN_RAND_MESSAGE_LENGTH 10
+#define MAX_RAND_MESSAGE_LENGTH 1000
+
+#include <random>
+inline std::random_device rd{ };
+inline std::default_random_engine dre{ rd() };
+inline std::uniform_int_distribution uidLength{ MIN_RAND_MESSAGE_LENGTH, MAX_RAND_MESSAGE_LENGTH };
+inline std::uniform_int_distribution<int> uidChar{ 'a', 'z' };
+
+#endif
+#pragma endregion
 
 inline constexpr int MAX_BUFFER_SIZE{ 1024 };
 inline constexpr int MAX_PACKET_SIZE{ 512 };
@@ -43,10 +64,4 @@ struct OverlappedEx {
     OVERLAPPED overlapped{ };
     WSABUF buffer{ };
     IO_TYPE ioType{ };
-};
-
-struct ChatPacket {
-    short length{ };
-    short toWhom{ };
-    char msg[MAX_PACKET_SIZE - sizeof(short) * 2];
 };

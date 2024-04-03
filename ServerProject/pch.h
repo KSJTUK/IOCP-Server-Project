@@ -18,6 +18,8 @@
 #include <functional>
 #include <syncstream>
 
+#include "Packet.h"
+
 inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
 
 class TimeUtil {
@@ -45,10 +47,4 @@ struct OverlappedEx {
 	WSABUF buffer{ };
 	SOCKET socket{ };
 	IO_TYPE ioType{ };
-};
-
-struct ChatPacket {
-	short length{ };
-	short toWhom{ };
-	char msg[MAX_PACKET_SIZE - sizeof(short) * 2];
 };

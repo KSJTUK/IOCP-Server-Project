@@ -2,7 +2,7 @@
 #include "ServerFramework.h"
 
 constexpr short DEFAULT_PORT{ 10000 };
-constexpr __int32 MAX_CLIENT{ 100 };
+constexpr __int32 MAX_CLIENT{ 50 };
 constexpr __int32 MAX_THREAD{ 4 };
 
 int main()

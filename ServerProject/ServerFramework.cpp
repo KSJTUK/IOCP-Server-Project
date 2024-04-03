@@ -51,13 +51,13 @@ bool NetworkServer::StartServer(const unsigned __int32 maxClient, unsigned __int
 		return false;
 	}
 
-	bool threadCreateSuccess{ CreateWorkThread(maxThread) };
+	bool threadCreateSuccess{ RunIOWorkThread(maxThread) };
 	if (not threadCreateSuccess) {
 		std::cout << std::format("[Fatal Error] Server Worker Thread Creating Fail\n");
 		return false;
 	}
 
-	threadCreateSuccess = CreateAcceptThread();
+	threadCreateSuccess = RunAcceptThread();
 	if (not threadCreateSuccess) {
 		std::cout << std::format("[Fatal Error] Server Accept Thread Creating Fail\n");
 		return false;
@@ -77,14 +77,14 @@ void NetworkServer::CreateClients(const unsigned __int32 maxClient) {
 	}
 }
 
-bool NetworkServer::CreateWorkThread(unsigned __int32 maxThread) {
+bool NetworkServer::RunIOWorkThread(unsigned __int32 maxThread) {
 	for (unsigned __int32 i = 0; i < maxThread; ++i) {
 		m_workThreads.emplace_back([this]() { WorkThread(); });
 	}
 	return true;
 }
 
-bool NetworkServer::CreateAcceptThread() {
+bool NetworkServer::RunAcceptThread() {
 	m_acceptThread = std::jthread{ [this]() { AcceptThread(); } };
 	return true;
 }
@@ -145,7 +145,7 @@ void NetworkServer::AcceptThread() {
 	int addressLength{ sizeof(sockaddr_in) };
 
 	while (m_acceptThreadRunning) {
-		auto optionalClient{ GetEmptyClient() };
+		auto optionalClient{ GetUnConnectedClient() };
 		if (not optionalClient.has_value()) {
 			std::cout << std::format("[Client Connect Fail] Client Full: Current Client( {} )\n", m_connectedClientSize);
 			continue;
@@ -174,7 +174,7 @@ void NetworkServer::AcceptThread() {
 	}
 }
 
-std::optional<std::reference_wrapper<Client>> NetworkServer::GetEmptyClient() {
+std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClient() {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() == INVALID_SOCKET) {
 			return client;
@@ -183,12 +183,11 @@ std::optional<std::reference_wrapper<Client>> NetworkServer::GetEmptyClient() {
 	return std::nullopt;
 }
 
-void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, std::string_view recvMessage) {
+void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
 	std::lock_guard<std::mutex> packetGuard(m_lock);
-	ChatPacket packet{ static_cast<short>(recvMessage.size()), static_cast<short>(clientIndex) };
+	PacketHead* packet{ };
 
-	std::memcpy(packet.msg, recvMessage.data(), recvByte);
-	m_packetData.emplace_back(packet);
+	m_packetQueue.emplace_back(packet);
 
 	TimeUtil::PrintTime();
 	std::cout << std::format("  From Client[{}] ¼ö½Å: {}\n", clientIndex, packet.msg);
@@ -205,21 +204,21 @@ void EchoServer::Close(__int32 clientIndex) {
 	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex());
 }
 
-bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
+bool EchoServer::SendPacket(__int32 clientIndex, PacketHead* packet) {
 	Client& client{ GetClient(clientIndex) };
-	return client.SendMsg(message);
+	return client.SendPacketData(packet);
 }
 
 void EchoServer::ProcessingPacket() {
 	while (m_processingPacket) {
 		std::unique_lock lock{ m_lock };
 
-		m_cv.wait(lock, [this]() { return !m_packetData.empty(); });
+		m_cv.wait(lock, [this]() { return !m_packetQueue.empty(); });
 
-		ChatPacket packet{ std::move(m_packetData.front()) };
-		m_packetData.pop_front();
+		PacketHead* packet{ std::move(m_packetQueue.front()) };
+		m_packetQueue.pop_front();
 
-		SendMsg(packet.toWhom, packet.msg);
+		//SendMsg(packet.toWhom, packet.msg);
 
 		lock.unlock();
 	}

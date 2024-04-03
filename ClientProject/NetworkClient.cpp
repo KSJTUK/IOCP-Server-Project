@@ -39,10 +39,11 @@ void NetworkClient::InsertPacketQueue(std::string_view msg) {
 
 bool NetworkClient::ConnectToServer(unsigned __int16 port, std::string_view serverIP) {
 	sockaddr_in serverAddress{ };
+
 	serverAddress.sin_family = PF_INET;
 	serverAddress.sin_port = ::htons(port);
 	serverAddress.sin_addr.s_addr = ::inet_addr(serverIP.data());
-	if (::connect(m_socket, reinterpret_cast<sockaddr*>(std::addressof(serverAddress)), sizeof(sockaddr_in))) {
+	if (::connect(m_socket, reinterpret_cast<sockaddr*>(std::addressof(serverAddress)), sizeof(sockaddr_in)) == SOCKET_ERROR) {
 		std::cout << std::format("[Fatal Error] Server Connecting Fail!, Error Code: {}\n", ::WSAGetLastError());
 		return false;
 	}

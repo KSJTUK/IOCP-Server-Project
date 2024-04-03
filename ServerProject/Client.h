@@ -10,13 +10,12 @@ public:
 public:
 	__int32 GetIndex() const { return m_index; }
 	SOCKET GetSocket() const { return m_socket; }
-	const char* GetRecvBuffer() const { return m_recvBuffer; }
 
 public:
 	bool Connect(HANDLE cpHandle, SOCKET socket);
 	bool BindIOCP(HANDLE cpHandle);
 
-	bool SendMsg(std::string_view message);
+	bool SendPacketData(PacketHead* pPacket);
 	bool BindRecv();
 
 	void CloseSocket(bool forcedClose = false);
@@ -29,7 +28,6 @@ private:
 	OverlappedEx m_recvIO{ };
 	OverlappedEx m_sendIO{ };
 
-	char m_recvBuffer[MAX_BUFFER_SIZE]{ };
-	char m_sendBuffer[MAX_BUFFER_SIZE]{ };
+	std::unique_ptr<char[]> m_recvBuffer{ };
 };
 

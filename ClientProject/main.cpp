@@ -1,10 +1,6 @@
 ﻿#include "pch.h"
 #include "NetworkClient.h"
 
-#define SERVER_TEST 1
-#define TEST_TIME_MS 2000
-
-
 int main(int argc, char* argv[])
 {
     TimeUtil::Init();
@@ -18,10 +14,20 @@ int main(int argc, char* argv[])
     
     while (true) {
 #if SERVER_TEST
-        nc.InsertPacketQueue("dummy message");
+        auto len{ uidLength(dre) };
+        std::string str{ };
+        str.resize(len, 0);
+        for (auto& c : str) {
+            c = static_cast<char>(uidChar(dre));
+        }
+
+        nc.InsertPacketQueue(str);
         std::this_thread::sleep_for(std::chrono::milliseconds{ TEST_TIME_MS });
 #else
         std::string sendMsg{ };
+
+        // 문자 출력 밀림을 방지하기 위한 sleep
+        std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
         std::cout << "메시지 입력: ";
         std::getline(std::cin, sendMsg);
 
