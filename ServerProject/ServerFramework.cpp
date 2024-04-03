@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ServerFramework.h"
 
-ServerFramework::ServerFramework() {
+NetworkServer::NetworkServer() {
 	WSADATA wsaData{ };
 	if (::WSAStartup(MAKEWORD(2, 2), std::addressof(wsaData))) {
 		std::cout << std::format("[Fatal Error] WSAStartup() Function Fail, Error Code: {}\n", ::WSAGetLastError());
@@ -15,7 +15,7 @@ ServerFramework::ServerFramework() {
 	}
 }
 
-ServerFramework::~ServerFramework() {
+NetworkServer::~NetworkServer() {
 	m_workThreadRunning = false;
 	::CloseHandle(m_cpHandle);
 
@@ -25,7 +25,7 @@ ServerFramework::~ServerFramework() {
 	::WSACleanup();
 }
 
-bool ServerFramework::BindAndListen(const unsigned __int16 port) {
+bool NetworkServer::BindAndListen(const unsigned __int16 port) {
 	sockaddr_in serverAddress{ };
 	serverAddress.sin_family = PF_INET;
 	serverAddress.sin_port = ::htons(port);
@@ -43,7 +43,7 @@ bool ServerFramework::BindAndListen(const unsigned __int16 port) {
 	return true;
 }
 
-bool ServerFramework::StartServer(const unsigned __int32 maxClient, unsigned __int32 maxThread) {
+bool NetworkServer::StartServer(const unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	CreateClients(maxClient);
 	m_cpHandle = ::CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, NULL, maxThread);
 	if (not m_cpHandle) {
@@ -67,36 +67,35 @@ bool ServerFramework::StartServer(const unsigned __int32 maxClient, unsigned __i
 	return true;
 }
 
-Client& ServerFramework::GetClient(__int32 clientIndex) {
+Client& NetworkServer::GetClient(__int32 clientIndex) {
 	return m_clients[clientIndex];
 }
 
-void ServerFramework::CreateClients(const unsigned __int32 maxClient) {
+void NetworkServer::CreateClients(const unsigned __int32 maxClient) {
 	for (unsigned __int32 i = 0; i < maxClient; ++i) {
 		m_clients.emplace_back(i);
 	}
 }
 
-bool ServerFramework::CreateWorkThread(unsigned __int32 maxThread) {
+bool NetworkServer::CreateWorkThread(unsigned __int32 maxThread) {
 	for (unsigned __int32 i = 0; i < maxThread; ++i) {
 		m_workThreads.emplace_back([this]() { WorkThread(); });
 	}
 	return true;
 }
 
-bool ServerFramework::CreateAcceptThread() {
+bool NetworkServer::CreateAcceptThread() {
 	m_acceptThread = std::jthread{ [this]() { AcceptThread(); } };
 	return true;
 }
 
-void ServerFramework::WorkThread() {
+void NetworkServer::WorkThread() {
 	bool ioComplete{ true };
 	DWORD ioSize{ };
-	OverlappedEx* pOverlappedEx{ };
 	LPOVERLAPPED pOverlapped{ };
 	Client* pClient{ nullptr };
 
-	while (true) {
+	while (m_workThreadRunning) {
 		// ::GetQueuedCompletionStatus return -> TRUE: i/o complete -> thread awake, FALSE: waiting time over -> thread sleep again
 		ioComplete = ::GetQueuedCompletionStatus(
 			m_cpHandle,												// completion port handle
@@ -123,11 +122,11 @@ void ServerFramework::WorkThread() {
 			continue;
 		}
 
-		pOverlappedEx = reinterpret_cast<OverlappedEx*>(pOverlapped);
+		OverlappedEx* pOverlappedEx = reinterpret_cast<OverlappedEx*>(pOverlapped);
 
 		// After Recv complete
 		if (pOverlappedEx->ioType == IO_TYPE::RECV) {
-			Receive(pClient->GetIndex(), pClient->GetRecvBuffer());
+			Receive(pClient->GetIndex(), static_cast<size_t>(ioSize), pOverlappedEx->buffer.buf);
 			pClient->BindRecv();
 		}
 		// After Send complete
@@ -141,7 +140,7 @@ void ServerFramework::WorkThread() {
 	}
 }
 
-void ServerFramework::AcceptThread() {
+void NetworkServer::AcceptThread() {
 	sockaddr_in clientAddress{ };
 	int addressLength{ sizeof(sockaddr_in) };
 
@@ -173,7 +172,7 @@ void ServerFramework::AcceptThread() {
 	}
 }
 
-std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() {
+std::optional<std::reference_wrapper<Client>> NetworkServer::GetEmptyClient() {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() == INVALID_SOCKET) {
 			return client;
@@ -182,11 +181,15 @@ std::optional<std::reference_wrapper<Client>> ServerFramework::GetEmptyClient() 
 	return std::nullopt;
 }
 
-void EchoServer::Receive(__int32 clientIndex, std::string_view recvMessage) {
+void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, std::string_view recvMessage) {
 	std::lock_guard<std::mutex> packetGuard(m_lock);
 	ChatPacket packet{ static_cast<short>(recvMessage.size()), static_cast<short>(clientIndex) };
-	std::copy(recvMessage.begin(), recvMessage.end(), packet.msg);
+
+	std::memcpy(packet.msg, recvMessage.data(), recvByte);
 	m_packetData.emplace_back(packet);
+
+	std::cout << std::format("From Client[{}] ¼ö½Å: {}\n", clientIndex, packet.msg);
+	m_cv.notify_one();
 }
 
 void EchoServer::Close(__int32 clientIndex) {
@@ -205,26 +208,18 @@ bool EchoServer::SendMsg(__int32 clientIndex, std::string_view message) {
 }
 
 void EchoServer::ProcessingPacket() {
-	while (m_processingPacket) { 
-		ChatPacket packet{ std::move(DequePacketData()) };
-		if (packet.length != 0) {
-			SendMsg(packet.toWhom, packet.msg);
-		}
-		else {
-			std::this_thread::yield();
-		}
-	}
-}
+	while (m_processingPacket) {
+		std::unique_lock lock{ m_lock };
 
-ChatPacket EchoServer::DequePacketData() {
-	std::unique_lock<std::mutex> packetLock{ m_lock };
-	if (m_packetData.empty()) {
-		return ChatPacket{ };
-	}
+		m_cv.wait(lock, [this]() { return !m_packetData.empty(); });
 
-	ChatPacket packet{ std::move(m_packetData.front()) };
-	m_packetData.pop_front();
-	return packet;
+		ChatPacket packet{ std::move(m_packetData.front()) };
+		m_packetData.pop_front();
+
+		SendMsg(packet.toWhom, packet.msg);
+
+		lock.unlock();
+	}
 }
 
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {

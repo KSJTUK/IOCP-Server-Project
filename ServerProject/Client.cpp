@@ -66,7 +66,6 @@ bool Client::BindRecv() {
 	DWORD flag{ };
 	DWORD recvSize{ };
 	
-	std::memset(std::addressof(m_recvBuffer), 0, sizeof(MAX_BUFFER_SIZE));
 	m_recvIO.buffer.len = MAX_BUFFER_SIZE;
 	m_recvIO.buffer.buf = m_recvBuffer;
 	m_recvIO.ioType = IO_TYPE::RECV;
@@ -103,7 +102,6 @@ void Client::CloseSocket(bool forcedClose) {
 }
 
 void Client::SendComplete(DWORD sendSize) {
-	std::cout << std::format("Send To Client [{}]: {}\n", m_index, m_sendBuffer);
 	std::memset(m_sendBuffer, 0, MAX_BUFFER_SIZE);
 	std::memset(std::addressof(m_sendIO), 0, sizeof(OverlappedEx));
 }

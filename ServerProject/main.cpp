@@ -12,5 +12,7 @@ int main()
 
 	echoServer.Run(MAX_CLIENT, MAX_THREAD);
 
-	while (true);
+	while (true) {
+
+	}
 }

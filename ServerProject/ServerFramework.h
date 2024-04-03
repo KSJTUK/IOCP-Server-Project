@@ -2,10 +2,10 @@
 
 #include "Client.h"
 
-class ServerFramework abstract {
+class NetworkServer abstract {
 public:
-	explicit ServerFramework();
-	virtual ~ServerFramework();
+	explicit NetworkServer();
+	virtual ~NetworkServer();
 
 public:
 	bool BindAndListen(const unsigned __int16 port);
@@ -14,8 +14,7 @@ public:
 	Client& GetClient(__int32 clientIndex);
 
 	virtual void Connect(__int32 clientIndex) PURE;
-	virtual void Receive(__int32 clientIndex, std::string_view recvMessage) PURE;
-	virtual void Receive(__int32 clientIndex, std::size_t dataSize, const char* recvData) PURE;
+	virtual void Receive(__int32 clientIndex, std::size_t recvSize, std::string_view recvMessage) PURE;
 	virtual void Close(__int32 clinetIndex) PURE;
 
 private:
@@ -46,11 +45,10 @@ private:
 };
 
 // --------------------------------------------
-class EchoServer : public ServerFramework {
+class EchoServer : public NetworkServer {
 public:
 	virtual void Connect(__int32 clientIndex) override { };
-	virtual void Receive(__int32 clientIndex, std::string_view recvMessage);
-	virtual void Receive(__int32 clientIndex, std::size_t dataSize, const char* recvData) override { };
+	virtual void Receive(__int32 clientIndex, std::size_t recvByte, std::string_view recvMessage);
 	virtual void Close(__int32 clientIndex) override;
 
 	//bool SendMsg(__int32 clientIndex, DWORD dataSize, const char* data);
@@ -61,12 +59,11 @@ public:
 
 private:
 	void ProcessingPacket();
-	ChatPacket DequePacketData();
 
 private:
 	bool m_processingPacket{ true };
 
-	std::condition_variable cv; 
+	std::condition_variable m_cv{ };
 
 	std::jthread m_procPacketThread{ };
 	std::mutex m_lock{ };

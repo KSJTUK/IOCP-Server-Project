@@ -16,9 +16,15 @@
 inline constexpr int MAX_BUFFER_SIZE{ 1024 };
 inline constexpr int MAX_PACKET_SIZE{ 512 };
 
+enum class IO_TYPE {
+    RECV,
+    SEND
+};
+
 struct OverlappedEx {
     OVERLAPPED overlapped{ };
     WSABUF buffer{ };
+    IO_TYPE ioType{ };
 };
 
 struct ChatPacket {
