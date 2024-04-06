@@ -60,6 +60,8 @@ public:
 
 private:
 	void ProcessingPacket();
+	void ProcessChatPacket(Packet* pPacket);
+	void ProcessPositionPacket(Packet* pPacket);
 
 private:
 	bool m_processingPacket{ true };
@@ -69,4 +71,5 @@ private:
 	std::jthread m_procPacketThread{ };
 	std::mutex m_packetLock{ };
 	std::deque<Packet*> m_packetQueue{ };
+	std::unordered_map<unsigned __int16, std::function<void(EchoServer&, Packet*)>> m_processFuncs{ };
 };

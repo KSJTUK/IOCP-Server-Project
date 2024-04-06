@@ -192,7 +192,7 @@ void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvD
 	m_packetQueue.emplace_back(packet);
 
 	TimeUtil::PrintTime();
-	std::cout << "  ";
+	std::cout << "  Recv - ";
 	packet->PrintPacket();
 	std::cout << "\n";
 	m_cv.notify_one();
@@ -232,6 +232,7 @@ void EchoServer::ProcessingPacket() {
 
 		Packet* pPacket{ std::move(m_packetQueue.front()) };
 		m_packetQueue.pop_front();
+		m_processFuncs[pPacket->Type()](*this, pPacket);
 
 		SendPacket(pPacket->From(), pPacket);
 		
@@ -239,8 +240,25 @@ void EchoServer::ProcessingPacket() {
 	}
 }
 
+void EchoServer::ProcessChatPacket(Packet* pPacket) {
+	TimeUtil::PrintTime();
+	std::cout << "  Send - ";
+	pPacket->PrintPacket();
+	std::cout << "\n";
+}
+
+void EchoServer::ProcessPositionPacket(Packet* pPacket) {
+	TimeUtil::PrintTime();
+	std::cout << "  Send - ";
+	pPacket->PrintPacket();
+	std::cout << "\n";
+}
+
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
+
+	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &EchoServer::ProcessChatPacket));
+	m_processFuncs.insert(std::make_pair(POS_TYPE, &EchoServer::ProcessPositionPacket));
 
 	StartServer(maxClient, maxThread);
 }
