@@ -1,18 +1,8 @@
 #pragma once
 
-struct ProcessPacket {
-	OverlappedEx sendIO{ };
-	OverlappedEx recvIO{ };
-
-	char recvBuffer[MAX_BUFFER_SIZE]{ };
-	char sendBuffer[MAX_BUFFER_SIZE]{ };
-};
-
-class MessageHandler {
-	
-	OverlappedEx sendIO{ };
-	OverlappedEx recvIO{ };
-	char m_recvBuffer[MAX_BUFFER_SIZE]{ };
+struct Session {
+	IOData sendIO{ };
+	IOData recvIO{ };
 };
 
 class NetworkClient {
@@ -21,8 +11,6 @@ public:
 	~NetworkClient();
 
 public:
-	void InsertPacketQueue(std::string_view msg);
-
 	bool ConnectToServer(unsigned __int16 port, std::string_view serverIP);
 	bool BindIOCP();
 	bool BindRecv();
@@ -30,12 +18,19 @@ public:
 	bool MainThread();
 	void StartServer();
 
+	void RecvComplete(char* pData, size_t size);
 	void SendComplete();
 
 	void PacketProcess();
-	void SendMsg();
+	void SendPacket();
 
 	void Run();
+
+	void InsertPacketQueue(char* pData);
+	void InsertPacketQueue(Packet* pPacket);
+
+	void ProcessChatPacket(Packet* pPacket);
+	void ProcessPositionPacket(Packet* pPacket);
 
 private:
 
@@ -50,7 +45,9 @@ private:
 	std::jthread m_packetProcThread{ };
 
 	std::mutex m_packetLock{ };
-	std::deque<ChatPacket> m_packetQueue{ };
+	std::deque<Packet*> m_packetQueue{ };
 
-	ProcessPacket m_processStruct{ };
+	std::unordered_map<unsigned __int16, std::function<void(NetworkClient&, Packet*)>> m_processFuncs{};
+
+	Session m_processStruct{ };
 };

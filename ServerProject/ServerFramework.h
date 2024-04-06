@@ -11,7 +11,7 @@ public:
 	bool BindAndListen(const unsigned __int16 port);
 	bool StartServer(const unsigned __int32 maxClient, unsigned __int32 maxThread = 0);
 
-	Client& GetClient(__int32 clientIndex);
+	Session& GetClient(__int32 clientIndex);
 
 	virtual void Connect(__int32 clientIndex) PURE;
 	virtual void Receive(__int32 clinetIndex, std::size_t recvSize, char* pRecvData) PURE;
@@ -25,7 +25,7 @@ private:
 	void WorkThread();
 	void AcceptThread();
 
-	std::optional<std::reference_wrapper<Client>> GetUnConnectedClient();
+	std::optional<std::reference_wrapper<Session>> GetUnConnectedClient();
 
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
@@ -35,7 +35,7 @@ private:
 	HANDLE m_cpHandle{ nullptr };
 
 	unsigned __int32 m_connectedClientSize{ };
-	std::vector<Client> m_clients{ };
+	std::vector<Session> m_clients{ };
 
 	std::vector<std::jthread> m_workThreads{ };
 	std::jthread m_acceptThread{ };
@@ -51,7 +51,9 @@ public:
 	virtual void Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData);
 	virtual void Close(__int32 clientIndex) override;
 
-	bool SendPacket(__int32 clinetIndex, PacketHead* packet);
+	bool SendPacket(__int32 clinetIndex, Packet* packet);
+
+	void InsertPacketQueue(char* pData, __int32 clientIndex);
 
 	void Run(unsigned __int32 maxClient, unsigned __int32 maxThread=0);
 	void End();
@@ -65,6 +67,6 @@ private:
 	std::condition_variable m_cv{ };
 
 	std::jthread m_procPacketThread{ };
-	std::mutex m_lock{ };
-	std::deque<PacketHead*> m_packetQueue{ };
+	std::mutex m_packetLock{ };
+	std::deque<Packet*> m_packetQueue{ };
 };

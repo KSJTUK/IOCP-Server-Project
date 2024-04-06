@@ -27,6 +27,9 @@
     <ClCompile Include="Client.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryBuf.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -36,6 +39,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Client.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryBuf.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

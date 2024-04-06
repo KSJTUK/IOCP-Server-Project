@@ -25,3 +25,7 @@ std::string TimeUtil::GetTime()
 	os << std::put_time(timeLocal, "[%x %a %X]");
 	return os.str();
 }
+
+void IOData::BufClear() {
+	buffer.fill(0);
+}

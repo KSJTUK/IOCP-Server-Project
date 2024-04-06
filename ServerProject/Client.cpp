@@ -1,14 +1,16 @@
 #include "pch.h"
 #include "Client.h"
 
-Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET }  {
-	m_recvBuffer = std::make_unique<char[]>(MAX_BUFFER_SIZE);
-	ZeroMemory(std::addressof(m_recvIO), sizeof(OverlappedEx));
+Session::Session(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET } {
+	ZeroMemory(std::addressof(m_recvIO), sizeof(IOData));
 }
 
-Client::~Client() { }
+Session::Session(const Session&& other) noexcept : m_index{ other.m_index }, m_socket{ other.m_socket } {
+}
 
-bool Client::Connect(HANDLE cpHandle, SOCKET socket) {
+Session::~Session() { }
+
+bool Session::Connect(HANDLE cpHandle, SOCKET socket) {
 	m_socket = socket;
 
 	if (not BindIOCP(cpHandle)) {
@@ -17,7 +19,7 @@ bool Client::Connect(HANDLE cpHandle, SOCKET socket) {
 	return BindRecv();
 }
 
-bool Client::BindIOCP(HANDLE bindHandle) {
+bool Session::BindIOCP(HANDLE bindHandle) {
 	HANDLE cpHandle{ ::CreateIoCompletionPort(
 		reinterpret_cast<HANDLE>(m_socket),
 		bindHandle,
@@ -33,17 +35,19 @@ bool Client::BindIOCP(HANDLE bindHandle) {
 	return true;
 }
 
-bool Client::SendPacketData(PacketHead* pPacket) {
+bool Session::SendPacketData(Packet* pPacket) {
 	DWORD sendSize{ };
 	DWORD flag{ };
 
-	m_sendIO.buffer.len = pPacket->length;
-	m_sendIO.buffer.buf = new char[pPacket->length];
-	std::memcpy(m_sendIO.buffer.buf, pPacket, pPacket->length);
+	std::memcpy(m_sendIO.buffer.data(), DerivedCpyPointer(pPacket), pPacket->Length());
+	m_sendIO.wsaBuf.len = static_cast<ULONG>(pPacket->Length());
+	delete pPacket;
+
+	m_sendIO.wsaBuf.buf = m_sendIO.buffer.data();
 	m_sendIO.ioType = IO_TYPE::SEND;
 
 	int sendResult{ ::WSASend(m_socket,
-		std::addressof(m_sendIO.buffer),
+		std::addressof(m_sendIO.wsaBuf),
 		1,
 		std::addressof(sendSize),
 		0,
@@ -51,23 +55,25 @@ bool Client::SendPacketData(PacketHead* pPacket) {
 		nullptr
 	) };
 
+
 	if (sendResult == SOCKET_ERROR and ::WSAGetLastError() == ERROR_IO_PENDING) {
+		std::cout << std::format("[Exception] Send Fail, Error Code: {}\n", ::WSAGetLastError());
 		return false;
 	}
 
 	return true;
 }
 
-bool Client::BindRecv() {
+bool Session::BindRecv() {
 	DWORD flag{ };
 	DWORD recvSize{ };
 	
-	m_recvIO.buffer.len = MAX_BUFFER_SIZE;
-	m_recvIO.buffer.buf = m_recvBuffer.get();
+	m_recvIO.wsaBuf.len = MAX_BUFFER_SIZE;
+	m_recvIO.wsaBuf.buf = m_recvIO.buffer.data();
 	m_recvIO.ioType = IO_TYPE::RECV;
 
 	int recvResult{ ::WSARecv(m_socket,						// socket for receiving data
-		std::addressof(m_recvIO.buffer),					// pointer of WSA buffer
+		std::addressof(m_recvIO.wsaBuf),					// pointer of WSA buffer
 		1,													// num of recv buffer 
 		std::addressof(recvSize),
 		std::addressof(flag) ,
@@ -83,7 +89,7 @@ bool Client::BindRecv() {
 	return true;
 }
 
-void Client::CloseSocket(bool forcedClose) {
+void Session::CloseSocket(bool forcedClose) {
 	static linger staticLinger{ 0, 0 };
 	static __int32 lingerSize{ sizeof(linger) };
 
@@ -97,6 +103,6 @@ void Client::CloseSocket(bool forcedClose) {
 	m_socket = INVALID_SOCKET;
 }
 
-void Client::SendComplete(DWORD sendSize) {
-	std::memset(std::addressof(m_sendIO), 0, sizeof(OverlappedEx));
+void Session::SendComplete(DWORD sendSize) {
+	std::memset(std::addressof(m_sendIO), 0, sizeof(IOData));
 }

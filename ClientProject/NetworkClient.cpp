@@ -28,15 +28,6 @@ NetworkClient::~NetworkClient() {
 	::WSACleanup();
 }
 
-void NetworkClient::InsertPacketQueue(std::string_view msg) {
-	std::lock_guard<std::mutex> packetLock{ m_packetLock };
-	ChatPacket packet{ static_cast<short>(msg.size()) };
-	std::copy(msg.begin(), msg.end(), packet.msg);
-	m_packetQueue.emplace_back(packet);
-
-	m_cv.notify_one();
-}
-
 bool NetworkClient::ConnectToServer(unsigned __int16 port, std::string_view serverIP) {
 	sockaddr_in serverAddress{ };
 
@@ -70,15 +61,12 @@ bool NetworkClient::BindRecv() {
 	DWORD ioSize{ };
 	DWORD flag{ };
 
-	std::memset(std::addressof(m_processStruct.recvIO), 0, sizeof(OverlappedEx));
-	std::memset(m_processStruct.recvBuffer, 0, MAX_BUFFER_SIZE);
-
-	m_processStruct.recvIO.buffer.len = MAX_BUFFER_SIZE;
-	m_processStruct.recvIO.buffer.buf = m_processStruct.recvBuffer;
+	m_processStruct.recvIO.wsaBuf.len = MAX_BUFFER_SIZE;
+	m_processStruct.recvIO.wsaBuf.buf = m_processStruct.recvIO.buffer.data();
 	m_processStruct.recvIO.ioType = IO_TYPE::RECV;
 
 	int recvResult{ ::WSARecv(m_socket,
-		std::addressof(m_processStruct.recvIO.buffer),
+		std::addressof(m_processStruct.recvIO.wsaBuf),
 		1,
 		std::addressof(ioSize),
 		std::addressof(flag),
@@ -98,12 +86,12 @@ bool NetworkClient::MainThread() {
 	bool ioComplete{ };
 	DWORD ioSize{ };
 	LPOVERLAPPED pOverlapped{ };
-	ProcessPacket* pProcPacket{ };
+	Session* pSession{ };
 
 	while (true) {
 		ioComplete = ::GetQueuedCompletionStatus(m_cpHandle,
 			std::addressof(ioSize),
-			reinterpret_cast<PULONG_PTR>(std::addressof(pProcPacket)),
+			reinterpret_cast<PULONG_PTR>(std::addressof(pSession)),
 			std::addressof(pOverlapped),
 			INFINITE
 		);
@@ -120,11 +108,9 @@ bool NetworkClient::MainThread() {
 			return false;
 		}
 
-		OverlappedEx* data{ reinterpret_cast<OverlappedEx*>(pOverlapped) };
+		IOData* data{ reinterpret_cast<IOData*>(pOverlapped) };
 		if (data->ioType == IO_TYPE::RECV) {
-
-			TimeUtil::PrintTime();
-			std::cout << std::format(" ¼ö½Å byte{}: {}\n", ioSize, data->buffer.buf);
+			RecvComplete(data->buffer.data(), ioSize);
 			BindRecv();
 		}
 		else if (data->ioType == IO_TYPE::SEND) {
@@ -142,10 +128,21 @@ void NetworkClient::StartServer() {
 
 	m_packetProcThread = std::jthread{ [this]() { PacketProcess(); } };
 	m_mainThread = std::jthread{ [this]() { MainThread();  } };
+
+	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &NetworkClient::ProcessChatPacket));
+	m_processFuncs.insert(std::make_pair(POS_TYPE, &NetworkClient::ProcessPositionPacket));
+}
+
+void NetworkClient::RecvComplete(char* pData, size_t size) {
+	std::lock_guard packetLock{ m_packetLock };
+
+	std::unique_ptr<Packet> tempPacket{ PacketFacrory::CreatePacket(pData) };
+	std::memcpy(DerivedCpyPointer(tempPacket.get()), pData, size);
+	m_processFuncs[tempPacket->Type()](*this, tempPacket.get());
 }
 
 void NetworkClient::SendComplete() {
-	std::memset(m_processStruct.sendBuffer, 0, MAX_BUFFER_SIZE);
+	m_processStruct.sendIO.BufClear();
 }
 
 void NetworkClient::PacketProcess() {
@@ -153,34 +150,37 @@ void NetworkClient::PacketProcess() {
 		std::unique_lock lock{ m_packetLock };
 		m_cv.wait(lock, [this]() { return !m_packetQueue.empty(); });
 		
-		SendMsg();
+		SendPacket();
 
 		lock.unlock();
 	}
 }
 
-void NetworkClient::SendMsg() {
+void NetworkClient::SendPacket() {
+	MemoryBuf buf{ };
+
 	DWORD ioSize{ };
 	DWORD flag{ };
 
-	ChatPacket packet{ std::move(m_packetQueue.front()) };
+	Packet* pPacket{ m_packetQueue.front() };
 	m_packetQueue.pop_front();
-	
-	std::memset(std::addressof(m_processStruct.sendIO), 0, sizeof(OverlappedEx));
 
-	std::memcpy(m_processStruct.sendBuffer, packet.msg, packet.length);
-	m_processStruct.sendIO.buffer.len = static_cast<ULONG>(packet.length);
-	m_processStruct.sendIO.buffer.buf = m_processStruct.sendBuffer;
+	std::memcpy(m_processStruct.sendIO.buffer.data(), DerivedCpyPointer(pPacket), pPacket->Length());
+	m_processStruct.sendIO.wsaBuf.len = static_cast<ULONG>(pPacket->Length());
+	delete pPacket;
+
+	m_processStruct.sendIO.wsaBuf.buf = m_processStruct.sendIO.buffer.data();
 	m_processStruct.sendIO.ioType = IO_TYPE::SEND;
 
 	int sendResult{ ::WSASend(m_socket,
-		std::addressof(m_processStruct.sendIO.buffer),
+		std::addressof(m_processStruct.sendIO.wsaBuf),
 		1,
 		std::addressof(ioSize),
-		0,
+		flag,
 		reinterpret_cast<LPOVERLAPPED>(std::addressof(m_processStruct.sendIO)),
 		nullptr
 	) };
+
 
 	if (sendResult == SOCKET_ERROR and ::WSAGetLastError() != WSA_IO_PENDING) {
 		std::cout << std::format("[Exception] Send Reserve Fail, Error Code: {}\n", ::WSAGetLastError());
@@ -189,4 +189,38 @@ void NetworkClient::SendMsg() {
 
 void NetworkClient::Run() {
 	StartServer();
+}
+
+void NetworkClient::InsertPacketQueue(char* pData) {
+	std::lock_guard<std::mutex> packetLock{ m_packetLock };
+
+	MemoryBuf buf{ };
+
+	Packet* pPacket{ PacketFacrory::CreatePacket(pData) };
+	buf.Write(pData, sizeof(pPacket->Length()));
+	pPacket->Decode(buf);
+	m_packetQueue.emplace_back(pPacket);
+
+	m_cv.notify_one();
+}
+
+void NetworkClient::InsertPacketQueue(Packet* pPacket) {
+	std::lock_guard<std::mutex> packetLock{ m_packetLock };
+
+	m_packetQueue.emplace_back(pPacket);
+	m_cv.notify_one();
+}
+
+void NetworkClient::ProcessChatPacket(Packet* pPacket) {
+	TimeUtil::PrintTime();
+	std::cout << "  ";
+	pPacket->PrintPacket();
+	std::cout << "\n";
+}
+
+void NetworkClient::ProcessPositionPacket(Packet* pPacket) {
+	TimeUtil::PrintTime();
+	std::cout << "  ";
+	pPacket->PrintPacket();
+	std::cout << "\n";
 }

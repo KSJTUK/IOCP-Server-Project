@@ -11,16 +11,25 @@
 #include <vector>
 #include <memory>
 #include <format>
+#include <array>
 #include <chrono>
 #include <sstream>
 #include <optional>
 #include <iostream>
 #include <functional>
+#include <unordered_map>
 #include <syncstream>
 
 #include "Packet.h"
 
+inline constexpr unsigned __int32 MAX_BUFFER_SIZE{ 1024 };
 inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
+
+template <typename DerivedType>
+inline void* DerivedCpyPointer(DerivedType* pData)
+{
+	return reinterpret_cast<char*>(pData) + sizeof(DerivedType*);
+}
 
 class TimeUtil {
 public:
@@ -42,9 +51,14 @@ enum class IO_TYPE {
 	SEND
 };
 
-struct OverlappedEx {
+struct IOData {
 	OVERLAPPED overlapped{ };
-	WSABUF buffer{ };
+	WSABUF wsaBuf{ };
 	SOCKET socket{ };
 	IO_TYPE ioType{ };
+
+	std::array<char, MAX_BUFFER_SIZE> buffer{ };
+
+public:
+	void BufClear();
 };

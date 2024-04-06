@@ -67,7 +67,7 @@ bool NetworkServer::StartServer(const unsigned __int32 maxClient, unsigned __int
 	return true;
 }
 
-Client& NetworkServer::GetClient(__int32 clientIndex) {
+Session& NetworkServer::GetClient(__int32 clientIndex) {
 	return m_clients[clientIndex];
 }
 
@@ -93,14 +93,14 @@ void NetworkServer::WorkThread() {
 	bool ioComplete{ true };
 	DWORD ioSize{ };
 	LPOVERLAPPED pOverlapped{ };
-	Client* pClient{ nullptr };
+	Session* pSession{ nullptr };
 
 	while (m_workThreadRunning) {
 		// ::GetQueuedCompletionStatus return -> TRUE: i/o complete -> thread awake, FALSE: waiting time over -> thread sleep again
 		ioComplete = ::GetQueuedCompletionStatus(
 			m_cpHandle,												// completion port handle
 			std::addressof(ioSize),									// pointer of byte size to save completed io
-			reinterpret_cast<PULONG_PTR>(std::addressof(pClient)),	// pointer of context to save info of completed io
+			reinterpret_cast<PULONG_PTR>(std::addressof(pSession)),	// pointer of context to save info of completed io
 			std::addressof(pOverlapped),								// overlaepped struct pointer for async io work
 			INFINITE												// Waiting time
 		);
@@ -117,25 +117,25 @@ void NetworkServer::WorkThread() {
 
 		// client disconnected
 		if (not ioComplete or (ioComplete and ioSize == 0)) {
-			Close(pClient->GetIndex());
-			pClient->CloseSocket();
+			Close(pSession->GetIndex());
+			pSession->CloseSocket();
 			continue;
 		}
 
-		OverlappedEx* pOverlappedEx = reinterpret_cast<OverlappedEx*>(pOverlapped);
+		IOData* pOverlappedEx = reinterpret_cast<IOData*>(pOverlapped);
 
 		// After Recv complete
 		if (pOverlappedEx->ioType == IO_TYPE::RECV) {
-			Receive(pClient->GetIndex(), static_cast<size_t>(ioSize), pOverlappedEx->buffer.buf);
-			pClient->BindRecv();
+			Receive(pSession->GetIndex(), static_cast<size_t>(ioSize), pOverlappedEx->buffer.data());
+			pSession->BindRecv();
 		}
 		// After Send complete
 		else if (pOverlappedEx->ioType == IO_TYPE::SEND) {
-			pClient->SendComplete(ioSize);
+			pSession->SendComplete(ioSize);
 		}
 		else {
 			// exception
-			std::cout << std::format("[Exception] socket: {}\n", pClient->GetSocket());
+			std::cout << std::format("[Exception] socket: {}\n", pSession->GetSocket());
 		}
 	}
 }
@@ -151,7 +151,7 @@ void NetworkServer::AcceptThread() {
 			continue;
 		}
 
-		Client& client{ optionalClient.value().get() };
+		Session& client{ optionalClient.value().get() };
 
 		SOCKET socket{ ::accept(m_listeningSocket, reinterpret_cast<sockaddr*>(std::addressof(clientAddress)), std::addressof(addressLength)) };
 		if (socket == INVALID_SOCKET) {
@@ -168,13 +168,13 @@ void NetworkServer::AcceptThread() {
 		::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
 
 		TimeUtil::PrintTime();
-		std::cout << std::format("  Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
+		std::cout << std::format(" Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
 
 		++m_connectedClientSize;
 	}
 }
 
-std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClient() {
+std::optional<std::reference_wrapper<Session>> NetworkServer::GetUnConnectedClient() {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() == INVALID_SOCKET) {
 			return client;
@@ -184,18 +184,22 @@ std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClien
 }
 
 void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
-	std::lock_guard<std::mutex> packetGuard(m_lock);
-	PacketHead* packet{ };
+	std::lock_guard<std::mutex> packetGuard(m_packetLock);
 
+	Packet* packet{ PacketFacrory::CreatePacket(pRecvData) };
+	std::memcpy(DerivedCpyPointer(packet), pRecvData, recvByte);
+	packet->SetFrom(clientIndex);
 	m_packetQueue.emplace_back(packet);
 
 	TimeUtil::PrintTime();
-	std::cout << std::format("  From Client[{}] ¼ö½Å: {}\n", clientIndex, packet.msg);
+	std::cout << "  ";
+	packet->PrintPacket();
+	std::cout << "\n";
 	m_cv.notify_one();
 }
 
 void EchoServer::Close(__int32 clientIndex) {
-	Client& client{ GetClient(clientIndex) };
+	Session& client{ GetClient(clientIndex) };
 	sockaddr_in clientAddress{ };
 	int addressLength{ sizeof(sockaddr_in) };
 
@@ -204,22 +208,33 @@ void EchoServer::Close(__int32 clientIndex) {
 	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex());
 }
 
-bool EchoServer::SendPacket(__int32 clientIndex, PacketHead* packet) {
-	Client& client{ GetClient(clientIndex) };
+bool EchoServer::SendPacket(__int32 clientIndex, Packet* packet) {
+	Session& client{ GetClient(clientIndex) };
 	return client.SendPacketData(packet);
+}
+
+void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
+	MemoryBuf buf{ };
+
+	Packet* pPacket{ PacketFacrory::CreatePacket(pData) };
+	std::memcpy(DerivedCpyPointer(pPacket), pData, pPacket->Length());
+	pPacket->SetFrom(clientIndex);
+	m_packetQueue.emplace_back(pPacket);
+
+	m_cv.notify_one();
 }
 
 void EchoServer::ProcessingPacket() {
 	while (m_processingPacket) {
-		std::unique_lock lock{ m_lock };
+		std::unique_lock lock{ m_packetLock };
 
 		m_cv.wait(lock, [this]() { return !m_packetQueue.empty(); });
 
-		PacketHead* packet{ std::move(m_packetQueue.front()) };
+		Packet* pPacket{ std::move(m_packetQueue.front()) };
 		m_packetQueue.pop_front();
 
-		//SendMsg(packet.toWhom, packet.msg);
-
+		SendPacket(pPacket->From(), pPacket);
+		
 		lock.unlock();
 	}
 }
