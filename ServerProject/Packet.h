@@ -26,7 +26,7 @@ public:
 	virtual void Encode(MemoryBuf& buf) PURE;
 	virtual void Decode(MemoryBuf& buf) PURE;
 
-	virtual void PrintPacket() const PURE;
+	virtual std::string PrintPacket() const PURE;
 
 protected:
 	PCHEADER m_header{ };
@@ -58,8 +58,8 @@ public:
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
 	}
 
-	virtual void PrintPacket() const {
-		std::cout << std::format("Packet Type: Chat, Packet Data: {}\n", m_chatMessage.data());
+	virtual std::string PrintPacket() const {
+		return std::format("Packet Type: Chat, Packet Data: {}\n", m_chatMessage.data());
 	}
 
 protected:
@@ -86,8 +86,8 @@ public:
 		buf >> m_header.type >> m_header.length >> m_header.from >> x >> y >> z;
 	}
 
-	virtual void PrintPacket() const {
-		std::cout << std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
+	virtual std::string PrintPacket() const {
+		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
 	}
 
 private:

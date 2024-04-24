@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 
     TimeUtil::Init();
     short defaultPort{ 10000 };
-    std::string serverIP{ "172.30.1.50" };
+    std::string serverIP{ "172.30.1.78" };
 
     NetworkClient nc{ };
     nc.ConnectToServer(defaultPort, serverIP);

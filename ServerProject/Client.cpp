@@ -55,7 +55,6 @@ bool Session::SendPacketData(Packet* pPacket) {
 		nullptr
 	) };
 
-
 	if (sendResult == SOCKET_ERROR and ::WSAGetLastError() == ERROR_IO_PENDING) {
 		std::cout << std::format("[Exception] Send Fail, Error Code: {}\n", ::WSAGetLastError());
 		return false;

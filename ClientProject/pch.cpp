@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Profiler.h"
 
 void TimeUtil::Init()
 {
@@ -11,15 +12,15 @@ void TimeUtil::End()
 }
 
 void TimeUtil::PrintTime()
-{ 
+{
 	timeNow = std::chrono::system_clock::now();
 	timeUTC = std::chrono::system_clock::to_time_t(timeNow);
 	timeLocal = localtime(&timeUTC);
 
-	std::cout << std::put_time(timeLocal, "[%x - %X]");
+	ConsoleIO::OutputString(GetTime());
 }
 
-std::string TimeUtil::GetTime() 
+std::string TimeUtil::GetTime()
 {
 	std::ostringstream os{ };
 	os << std::put_time(timeLocal, "[%x %a %X]");

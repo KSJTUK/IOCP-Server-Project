@@ -135,7 +135,7 @@ void NetworkServer::WorkThread() {
 		}
 		else {
 			// exception
-			std::cout << std::format("[Exception] socket: {}\n", pSession->GetSocket());
+			ConsoleIO::OutputString(std::format("[Exception] socket: {}\n", pSession->GetSocket()));
 		}
 	}
 }
@@ -147,7 +147,7 @@ void NetworkServer::AcceptThread() {
 	while (m_acceptThreadRunning) {
 		auto optionalClient{ GetUnConnectedClient() };
 		if (not optionalClient.has_value()) {
-			std::cout << std::format("[Client Connect Fail] Client Full: Current Client( {} )\n", m_connectedClientSize);
+			ConsoleIO::OutputString(std::format("[Client Connect Fail] Client Full: Current Client( {} )\n", m_connectedClientSize));
 			continue;
 		}
 
@@ -168,7 +168,7 @@ void NetworkServer::AcceptThread() {
 		::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
 
 		TimeUtil::PrintTime();
-		std::cout << std::format(" Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex());
+		ConsoleIO::OutputString(std::format(" Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex()));
 
 		++m_connectedClientSize;
 	}
@@ -186,15 +186,15 @@ std::optional<std::reference_wrapper<Session>> NetworkServer::GetUnConnectedClie
 void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
 	std::lock_guard<std::mutex> packetGuard(m_packetLock);
 
+	m_timer.SetTimeStamp();
+
 	Packet* packet{ PacketFacrory::CreatePacket(pRecvData) };
 	std::memcpy(DerivedCpyPointer(packet), pRecvData, recvByte);
 	packet->SetFrom(clientIndex);
 	m_packetQueue.emplace_back(packet);
 
 	TimeUtil::PrintTime();
-	std::cout << "  Recv - ";
-	packet->PrintPacket();
-	std::cout << "\n";
+	ConsoleIO::OutputString("  Recv - " + (packet->PrintPacket()) + "\n");
 	m_cv.notify_one();
 }
 
@@ -205,7 +205,7 @@ void EchoServer::Close(__int32 clientIndex) {
 
 	char clientIP[INET_ADDRSTRLEN]{ };
 	::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
-	std::cout << std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex());
+	ConsoleIO::OutputString(std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex()));
 }
 
 bool EchoServer::SendPacket(__int32 clientIndex, Packet* packet) {
@@ -242,16 +242,16 @@ void EchoServer::ProcessingPacket() {
 
 void EchoServer::ProcessChatPacket(Packet* pPacket) {
 	TimeUtil::PrintTime();
-	std::cout << "  Send - ";
-	pPacket->PrintPacket();
-	std::cout << "\n";
+	ConsoleIO::OutputString("  Send - " + pPacket->PrintPacket());
+	ConsoleIO::OutputString(std::format("Time Elapsed For Milli : {:.4f}", m_timer.GetTimeSec()));
+	ConsoleIO::OutputString(std::format("Time Elapsed From Recv : {:.4f}\n", m_timer.GetTimeFromStampSec()));
 }
 
 void EchoServer::ProcessPositionPacket(Packet* pPacket) {
 	TimeUtil::PrintTime();
-	std::cout << "  Send - ";
-	pPacket->PrintPacket();
-	std::cout << "\n";
+	ConsoleIO::OutputString("  Send - " + pPacket->PrintPacket());
+	ConsoleIO::OutputString(std::format("Time Elapsed For Milli : {:.4f}\n", m_timer.GetTimeSec()));
+	ConsoleIO::OutputString(std::format("Time Elapsed From Recv : {:.4f}\n", m_timer.GetTimeFromStampSec()));
 }
 
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {

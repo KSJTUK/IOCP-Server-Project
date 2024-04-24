@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Profiler.h"
+
 struct Session {
 	IOData sendIO{ };
 	IOData recvIO{ };
@@ -32,7 +34,8 @@ public:
 	void ProcessChatPacket(Packet* pPacket);
 	void ProcessPositionPacket(Packet* pPacket);
 
-private:
+protected:
+	TimeProfiler m_timer{ };
 
 private:
 	SOCKET m_socket{ };

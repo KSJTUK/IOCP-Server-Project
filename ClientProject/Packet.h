@@ -26,7 +26,7 @@ public:
 	virtual void Encode(MemoryBuf& buf) PURE;
 	virtual void Decode(MemoryBuf& buf) PURE;
 
-	virtual void PrintPacket() const { }
+	virtual std::string PrintPacket() const PURE;
 
 protected:
 	PCHEADER m_header{ };
@@ -36,7 +36,7 @@ class ChatPacket : public Packet {
 public:
 	ChatPacket() { m_header = { CHAT_TYPE, sizeof(*this) - MAX_CHAT_BUF - sizeof(Packet*), }; }
 	ChatPacket(std::string_view str) {
-		m_header = { CHAT_TYPE, static_cast <unsigned __int16>(sizeof(*this) - sizeof(Packet*) - MAX_CHAT_BUF + str.size()) };
+		m_header = { CHAT_TYPE, static_cast <unsigned __int16>(sizeof(*this) - MAX_CHAT_BUF - sizeof(Packet*) + str.size()) };
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
 	}
 
@@ -58,8 +58,8 @@ public:
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
 	}
 
-	virtual void PrintPacket() const {
-		std::cout << std::format("Packet Type: Chat, Packet Data: {}\n", m_chatMessage.data());
+	virtual std::string PrintPacket() const {
+		return std::format("Packet Type: Chat, Packet Data: {}\n", m_chatMessage.data());
 	}
 
 protected:
@@ -68,7 +68,7 @@ protected:
 
 class PositionPacket : public Packet {
 public:
-	PositionPacket() { m_header = { POS_TYPE, sizeof(*this) - sizeof(Packet*),}; }
+	PositionPacket() { m_header = { POS_TYPE, sizeof(*this) - sizeof(Packet*), }; }
 	PositionPacket(float x, float y, float z) : x{ x }, y{ y }, z{ z } { m_header = { POS_TYPE, sizeof(*this) - sizeof(Packet*), }; }
 
 public:
@@ -86,8 +86,8 @@ public:
 		buf >> m_header.type >> m_header.length >> m_header.from >> x >> y >> z;
 	}
 
-	virtual void PrintPacket() const {
-		std::cout << std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
+	virtual std::string PrintPacket() const {
+		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
 	}
 
 private:

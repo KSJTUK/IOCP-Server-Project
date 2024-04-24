@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Client.h"
+#include "Profiler.h"
 
 class NetworkServer abstract {
 public:
@@ -26,6 +27,9 @@ private:
 	void AcceptThread();
 
 	std::optional<std::reference_wrapper<Session>> GetUnConnectedClient();
+
+protected:
+	TimeProfiler m_timer{ };
 
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
