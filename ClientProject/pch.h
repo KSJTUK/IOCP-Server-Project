@@ -22,7 +22,7 @@
 #include "Packet.h"
 
 #pragma region FOR_TEST
-#define SERVER_TEST 1
+#define SERVER_TEST 0
 
 #if SERVER_TEST
 

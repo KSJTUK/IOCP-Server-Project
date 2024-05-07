@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "ServerFramework.h"
 
-constexpr short DEFAULT_PORT{ 10000 };
+constexpr short DEFAULT_PORT{ 8080 };
 constexpr __int32 MAX_CLIENT{ 50 };
 constexpr __int32 MAX_THREAD{ 4 };
 
@@ -19,4 +19,5 @@ int main()
 	}
 
 	TimeUtil::End();
+	ConsoleIO::End();
 }

@@ -143,7 +143,6 @@ void NetworkClient::RecvComplete(char* pData, size_t size) {
 
 void NetworkClient::SendComplete() {
 	m_processStruct.sendIO.BufClear();
-	m_timer.SetTimeStamp();
 }
 
 void NetworkClient::PacketProcess() {
@@ -213,13 +212,9 @@ void NetworkClient::InsertPacketQueue(Packet* pPacket) {
 }
 
 void NetworkClient::ProcessChatPacket(Packet* pPacket) {
-	TimeUtil::PrintTime();
 	ConsoleIO::OutputString(pPacket->PrintPacket());
-	ConsoleIO::OutputString(std::format("Latency : {:.1f} ms\n", m_timer.GetTimeFromStamp()));
 }
 
 void NetworkClient::ProcessPositionPacket(Packet* pPacket) {
-	TimeUtil::PrintTime();
 	ConsoleIO::OutputString(pPacket->PrintPacket());
-	ConsoleIO::OutputString(std::format("Latency : {:.1f} ms\n", m_timer.GetTimeFromStamp()));
 }

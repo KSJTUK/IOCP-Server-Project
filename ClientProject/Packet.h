@@ -59,7 +59,7 @@ public:
 	}
 
 	virtual std::string PrintPacket() const {
-		return std::format("Packet Type: Chat, Packet Data: {}\n", m_chatMessage.data());
+		return std::format("From {}: {}\n", m_header.from, m_chatMessage.data());
 	}
 
 protected:
@@ -87,7 +87,7 @@ public:
 	}
 
 	virtual std::string PrintPacket() const {
-		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
+		return std::format("From {}: ({}, {}, {})\n", m_header.from, x, y, z);
 	}
 
 private:

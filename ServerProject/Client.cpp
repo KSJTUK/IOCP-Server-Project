@@ -41,7 +41,6 @@ bool Session::SendPacketData(Packet* pPacket) {
 
 	std::memcpy(m_sendIO.buffer.data(), DerivedCpyPointer(pPacket), pPacket->Length());
 	m_sendIO.wsaBuf.len = static_cast<ULONG>(pPacket->Length());
-	delete pPacket;
 
 	m_sendIO.wsaBuf.buf = m_sendIO.buffer.data();
 	m_sendIO.ioType = IO_TYPE::SEND;

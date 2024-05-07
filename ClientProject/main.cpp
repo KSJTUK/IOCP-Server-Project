@@ -4,11 +4,11 @@
 
 int main(int argc, char* argv[])
 {
-    MemoryBuf buf{ };
-
     TimeUtil::Init();
-    short defaultPort{ 10000 };
-    std::string serverIP{ "172.30.1.78" };
+    short defaultPort{ 8080 };
+
+    //std::string serverIP{ "220.120.143.86" };
+    std::string serverIP{ "127.0.0.1" };
 
     NetworkClient nc{ };
     nc.ConnectToServer(defaultPort, serverIP);
@@ -37,10 +37,7 @@ int main(int argc, char* argv[])
         std::this_thread::sleep_for(std::chrono::milliseconds{ TEST_TIME_MS });
 #else
         std::string sendMsg{ };
-
-        // 문자 출력 밀림을 방지하기 위한 sleep
-        std::cout << "메시지 입력: ";
-        std::getline(std::cin, sendMsg);
+        sendMsg = ConsoleIO::Input();
 
         nc.InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(sendMsg));
 
@@ -48,4 +45,5 @@ int main(int argc, char* argv[])
 #endif
     }
     TimeUtil::End();
+    ConsoleIO::End();
 }

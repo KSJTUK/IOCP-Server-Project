@@ -15,8 +15,8 @@ public:
 	Session& GetClient(__int32 clientIndex);
 
 	virtual void Connect(__int32 clientIndex) PURE;
-	virtual void Receive(__int32 clinetIndex, std::size_t recvSize, char* pRecvData) PURE;
-	virtual void Close(__int32 clinetIndex) PURE;
+	virtual void Receive(__int32 clientIndex, std::size_t recvSize, char* pRecvData) PURE;
+	virtual void Close(__int32 clientIndex) PURE;
 
 private:
 	void CreateClients(const unsigned __int32 maxClient);
@@ -30,6 +30,7 @@ private:
 
 protected:
 	TimeProfiler m_timer{ };
+	std::vector<Session> m_clients{ };
 
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
@@ -39,7 +40,6 @@ private:
 	HANDLE m_cpHandle{ nullptr };
 
 	unsigned __int32 m_connectedClientSize{ };
-	std::vector<Session> m_clients{ };
 
 	std::vector<std::jthread> m_workThreads{ };
 	std::jthread m_acceptThread{ };
@@ -56,6 +56,7 @@ public:
 	virtual void Close(__int32 clientIndex) override;
 
 	bool SendPacket(__int32 clinetIndex, Packet* packet);
+	bool SendAll(__int32 clientIndex, Packet* packet);
 
 	void InsertPacketQueue(char* pData, __int32 clientIndex);
 
@@ -77,3 +78,5 @@ private:
 	std::deque<Packet*> m_packetQueue{ };
 	std::unordered_map<unsigned __int16, std::function<void(EchoServer&, Packet*)>> m_processFuncs{ };
 };
+
+// --------------------------------------------

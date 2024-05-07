@@ -166,6 +166,7 @@ void NetworkServer::AcceptThread() {
 
 		char clientIP[INET_ADDRSTRLEN]{ };
 		::inet_ntop(PF_INET, std::addressof(clientAddress.sin_addr), clientIP, INET_ADDRSTRLEN);
+		//::getpeername(socket, reinterpret_cast<sockaddr*>(std::addressof(clientAddress)), std::addressof(addressLength));
 
 		TimeUtil::PrintTime();
 		ConsoleIO::OutputString(std::format(" Client [IP: {} | SOCKET: {} | index: {}] is connected\n", clientIP, client.GetSocket(), client.GetIndex()));
@@ -208,9 +209,21 @@ void EchoServer::Close(__int32 clientIndex) {
 	ConsoleIO::OutputString(std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex()));
 }
 
-bool EchoServer::SendPacket(__int32 clientIndex, Packet* packet) {
+bool EchoServer::SendPacket(__int32 clientIndex, Packet* pPacket) {
 	Session& client{ GetClient(clientIndex) };
-	return client.SendPacketData(packet);
+	bool rtVal = client.SendPacketData(pPacket);
+	delete pPacket;
+	return rtVal;
+}
+
+bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
+	for (auto& client : m_clients) {
+		if (client.GetSocket() != INVALID_SOCKET) {
+			client.SendPacketData(pPacket);
+		}
+	}
+	delete pPacket;
+	return true;
 }
 
 void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
@@ -234,24 +247,17 @@ void EchoServer::ProcessingPacket() {
 		m_packetQueue.pop_front();
 		m_processFuncs[pPacket->Type()](*this, pPacket);
 
-		SendPacket(pPacket->From(), pPacket);
+		//SendPacket(pPacket->From(), pPacket);
+		SendAll(pPacket->From(), pPacket);
 		
 		lock.unlock();
 	}
 }
 
 void EchoServer::ProcessChatPacket(Packet* pPacket) {
-	TimeUtil::PrintTime();
-	ConsoleIO::OutputString("  Send - " + pPacket->PrintPacket());
-	ConsoleIO::OutputString(std::format("Time Elapsed For Milli : {:.4f}", m_timer.GetTimeSec()));
-	ConsoleIO::OutputString(std::format("Time Elapsed From Recv : {:.4f}\n", m_timer.GetTimeFromStampSec()));
 }
 
 void EchoServer::ProcessPositionPacket(Packet* pPacket) {
-	TimeUtil::PrintTime();
-	ConsoleIO::OutputString("  Send - " + pPacket->PrintPacket());
-	ConsoleIO::OutputString(std::format("Time Elapsed For Milli : {:.4f}\n", m_timer.GetTimeSec()));
-	ConsoleIO::OutputString(std::format("Time Elapsed From Recv : {:.4f}\n", m_timer.GetTimeFromStampSec()));
 }
 
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {

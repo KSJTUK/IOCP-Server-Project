@@ -55,6 +55,20 @@ public:
 		m_cv.notify_one();
 	}
 
+	static std::string Input()
+	{
+		std::string sendMsg{ };
+		std::getline(std::cin, sendMsg);
+
+		return sendMsg;
+	}
+
+	static void Print()
+	{
+		std::cout << m_outputs.front();
+		m_outputs.pop_front();
+	}
+
 private:
 	static void IOThread()
 	{
@@ -62,8 +76,7 @@ private:
 			std::unique_lock<std::mutex> lock{ m_lock };
 			m_cv.wait(lock, []() { return !m_outputs.empty(); });
 
-			std::cout << m_outputs.front() << std::endl;
-			m_outputs.pop_front();
+			Print();
 
 			lock.unlock();
 		}

@@ -4,8 +4,28 @@
 #include <fstream>
 #include <chrono>
 
-class Profiler {
-	
+class File {
+public:
+	File();
+	~File();
+
+public:
+	bool IsOpened() const {return m_file.is_open(); };
+	bool Open(const std::string& filePath);
+	bool Open(const char* filePath);
+
+public:
+	void WriteFile(const std::string& str);
+	void WriteFile(const char* str);
+
+private:
+	unsigned __int16 m_fileState{ };
+	int m_fileMode{ std::ios::in | std::ios::app };
+	std::fstream m_file{ };
+};
+
+class Logger {
+
 };
 
 class TimeProfiler {
@@ -21,6 +41,9 @@ public:
 	void SetTimeStamp() { m_timeStamp = m_elapsedTimeSec; }
 	double GetTimeFromStamp() const { return m_elapsedTimeSec.count() - m_timeStamp.count(); }
 	double GetTimeFromStampSec() const { return (m_elapsedTimeSec.count() - m_timeStamp.count()) / 1000.0; }
+
+public:
+	static std::string GetDate() { return TimeUtil::GetTime(); }
 
 private:
 	void TimerThread();
