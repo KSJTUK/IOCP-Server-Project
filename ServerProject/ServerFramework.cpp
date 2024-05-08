@@ -67,7 +67,7 @@ bool NetworkServer::StartServer(const unsigned __int32 maxClient, unsigned __int
 	return true;
 }
 
-Session& NetworkServer::GetClient(__int32 clientIndex) {
+Client& NetworkServer::GetClient(__int32 clientIndex) {
 	return m_clients[clientIndex];
 }
 
@@ -93,7 +93,7 @@ void NetworkServer::WorkThread() {
 	bool ioComplete{ true };
 	DWORD ioSize{ };
 	LPOVERLAPPED pOverlapped{ };
-	Session* pSession{ nullptr };
+	Client* pSession{ nullptr };
 
 	while (m_workThreadRunning) {
 		// ::GetQueuedCompletionStatus return -> TRUE: i/o complete -> thread awake, FALSE: waiting time over -> thread sleep again
@@ -151,7 +151,7 @@ void NetworkServer::AcceptThread() {
 			continue;
 		}
 
-		Session& client{ optionalClient.value().get() };
+		Client& client{ optionalClient.value().get() };
 
 		SOCKET socket{ ::accept(m_listeningSocket, reinterpret_cast<sockaddr*>(std::addressof(clientAddress)), std::addressof(addressLength)) };
 		if (socket == INVALID_SOCKET) {
@@ -175,7 +175,7 @@ void NetworkServer::AcceptThread() {
 	}
 }
 
-std::optional<std::reference_wrapper<Session>> NetworkServer::GetUnConnectedClient() {
+std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClient() {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() == INVALID_SOCKET) {
 			return client;
@@ -200,7 +200,7 @@ void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvD
 }
 
 void EchoServer::Close(__int32 clientIndex) {
-	Session& client{ GetClient(clientIndex) };
+	Client& client{ GetClient(clientIndex) };
 	sockaddr_in clientAddress{ };
 	int addressLength{ sizeof(sockaddr_in) };
 
@@ -210,7 +210,7 @@ void EchoServer::Close(__int32 clientIndex) {
 }
 
 bool EchoServer::SendPacket(__int32 clientIndex, Packet* pPacket) {
-	Session& client{ GetClient(clientIndex) };
+	Client& client{ GetClient(clientIndex) };
 	bool rtVal = client.SendPacketData(pPacket);
 	delete pPacket;
 	return rtVal;
@@ -223,6 +223,7 @@ bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 		}
 	}
 	delete pPacket;
+	pPacket = nullptr;
 	return true;
 }
 
@@ -260,11 +261,15 @@ void EchoServer::ProcessChatPacket(Packet* pPacket) {
 void EchoServer::ProcessPositionPacket(Packet* pPacket) {
 }
 
+void EchoServer::ProcessVoicePacket(Packet* pPacket) {
+}
+
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
 
 	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &EchoServer::ProcessChatPacket));
 	m_processFuncs.insert(std::make_pair(POS_TYPE, &EchoServer::ProcessPositionPacket));
+	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &EchoServer::ProcessVoicePacket));
 
 	StartServer(maxClient, maxThread);
 }

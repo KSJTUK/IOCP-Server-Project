@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "NetworkClient.h"
 #include "Profiler.h"
 
 void TimeUtil::Init()
@@ -26,3 +27,5 @@ std::string TimeUtil::GetTime()
 	os << std::put_time(timeLocal, "[%x %a %X]");
 	return os.str();
 }
+
+std::unique_ptr<NetworkClient> nc = std::make_unique<NetworkClient>();

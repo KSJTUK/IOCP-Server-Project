@@ -27,10 +27,13 @@
     <ClCompile Include="MemoryBuf.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Packet.cpp">
+    <ClCompile Include="Profiler.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Profiler.cpp">
+    <ClCompile Include="Voice.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Packet.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -41,13 +44,16 @@
     <ClInclude Include="NetworkClient.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Packet.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="MemoryBuf.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Profiler.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Voice.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Packet.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

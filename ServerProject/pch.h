@@ -5,6 +5,7 @@
 #include <WS2tcpip.h>
 
 #pragma comment (lib, "ws2_32.lib")
+#pragma comment (lib, "winmm.lib")
 
 #include <deque>
 #include <thread>
@@ -20,10 +21,12 @@
 #include <unordered_map>
 #include <syncstream>
 
-#include "Packet.h"
-
-inline constexpr unsigned __int32 MAX_BUFFER_SIZE{ 1024 };
+inline constexpr unsigned __int32 MAX_BUFFER_SIZE{ 8096 };
 inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
+inline constexpr int RECORDE_MILLISEC = 500;
+inline constexpr int RECORDE_HZ = 8000;
+inline constexpr int RECORDE_CHANNEL = 1;
+inline constexpr int RECORDE_BUFFER_SIZE = (int)(RECORDE_HZ * RECORDE_CHANNEL) * (RECORDE_MILLISEC / 1000.0f);
 
 template <typename DerivedType>
 inline void* DerivedCpyPointer(DerivedType* pData)

@@ -7,6 +7,7 @@
 enum PACKET_TYPE : unsigned __int16 {
 	CHAT_TYPE,
 	POS_TYPE,
+	VOICE_TYPE,
 };
 
 struct PCHEADER {
@@ -87,13 +88,47 @@ public:
 	}
 
 	virtual std::string PrintPacket() const {
-		return std::format("From {}: ({}, {}, {})\n", m_header.from, x, y, z);
+		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
 	}
 
 private:
 	float x{ };
 	float y{ };
 	float z{ };
+};
+
+class VoicePacket : public Packet {
+public:
+	VoicePacket() { m_header = { VOICE_TYPE, sizeof(*this) - sizeof(Packet*), }; }
+	VoicePacket(char* data, size_t dataSize) {
+		m_header = { VOICE_TYPE, static_cast <unsigned __int16>(sizeof(*this) - RECORDE_BUFFER_SIZE - sizeof(Packet*) + dataSize) };
+		std::memcpy(m_data.data(), data, dataSize);
+	}
+
+	virtual unsigned __int16 Length() const { return m_header.length; }
+	virtual unsigned __int16 Type() const { return m_header.type; }
+
+	virtual void Encode(MemoryBuf& buf) {
+		buf << m_header.type;
+		buf << m_header.length;
+		buf << m_header.from;
+		buf << m_data;
+	}
+
+	virtual void Decode(MemoryBuf& buf) {
+		buf >> m_header.type >> m_header.length >> m_header.from >> m_data;
+	}
+
+	void SetVoiceData(char* data, size_t dataSize) {
+		std::memcpy(m_data.data(), data, dataSize);
+	}
+
+	const char* GetBuffer() const { return m_data.data(); }
+
+	virtual std::string PrintPacket() const { return ""; }
+
+private:
+	std::array<char, RECORDE_BUFFER_SIZE> m_data{ };
 };
 
 class PacketFacrory {
@@ -108,6 +143,9 @@ public:
 
 		case POS_TYPE:
 			return new PositionPacket{ };
+
+		case VOICE_TYPE:
+			return new VoicePacket{ };
 		}
 
 		return nullptr;

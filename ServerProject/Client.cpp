@@ -1,16 +1,17 @@
 #include "pch.h"
 #include "Client.h"
+#include "Packet.h"
 
-Session::Session(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET } {
+Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET } {
 	ZeroMemory(std::addressof(m_recvIO), sizeof(IOData));
 }
 
-Session::Session(const Session&& other) noexcept : m_index{ other.m_index }, m_socket{ other.m_socket } {
+Client::Client(const Client&& other) noexcept : m_index{ other.m_index }, m_socket{ other.m_socket } {
 }
 
-Session::~Session() { }
+Client::~Client() { }
 
-bool Session::Connect(HANDLE cpHandle, SOCKET socket) {
+bool Client::Connect(HANDLE cpHandle, SOCKET socket) {
 	m_socket = socket;
 
 	if (not BindIOCP(cpHandle)) {
@@ -19,7 +20,7 @@ bool Session::Connect(HANDLE cpHandle, SOCKET socket) {
 	return BindRecv();
 }
 
-bool Session::BindIOCP(HANDLE bindHandle) {
+bool Client::BindIOCP(HANDLE bindHandle) {
 	HANDLE cpHandle{ ::CreateIoCompletionPort(
 		reinterpret_cast<HANDLE>(m_socket),
 		bindHandle,
@@ -35,7 +36,7 @@ bool Session::BindIOCP(HANDLE bindHandle) {
 	return true;
 }
 
-bool Session::SendPacketData(Packet* pPacket) {
+bool Client::SendPacketData(Packet* pPacket) {
 	DWORD sendSize{ };
 	DWORD flag{ };
 
@@ -62,7 +63,7 @@ bool Session::SendPacketData(Packet* pPacket) {
 	return true;
 }
 
-bool Session::BindRecv() {
+bool Client::BindRecv() {
 	DWORD flag{ };
 	DWORD recvSize{ };
 	
@@ -87,7 +88,7 @@ bool Session::BindRecv() {
 	return true;
 }
 
-void Session::CloseSocket(bool forcedClose) {
+void Client::CloseSocket(bool forcedClose) {
 	static linger staticLinger{ 0, 0 };
 	static __int32 lingerSize{ sizeof(linger) };
 
@@ -101,6 +102,6 @@ void Session::CloseSocket(bool forcedClose) {
 	m_socket = INVALID_SOCKET;
 }
 
-void Session::SendComplete(DWORD sendSize) {
+void Client::SendComplete(DWORD sendSize) {
 	std::memset(std::addressof(m_sendIO), 0, sizeof(IOData));
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-class Session {
+class Client {
 public:
-	Session(__int32 index);
-	Session(const Session&& other) noexcept;
-	~Session();
+	Client(__int32 index);
+	Client(const Client&& other) noexcept;
+	virtual ~Client();
 
 public:
 	__int32 GetIndex() const { return m_index; }
@@ -14,17 +14,16 @@ public:
 	bool Connect(HANDLE cpHandle, SOCKET socket);
 	bool BindIOCP(HANDLE cpHandle);
 
-	bool SendPacketData(Packet* pPacket);
+	bool SendPacketData(class Packet* pPacket);
 	bool BindRecv();
 
 	void CloseSocket(bool forcedClose = false);
 	void SendComplete(DWORD sendSize);
 
-private:
+protected:
 	__int32 m_index{ };
 
 	SOCKET m_socket{ INVALID_SOCKET };
 	IOData m_recvIO{ };
 	IOData m_sendIO{ };
 };
-

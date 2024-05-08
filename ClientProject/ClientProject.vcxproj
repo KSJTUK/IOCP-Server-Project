@@ -142,6 +142,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Profiler.cpp" />
+    <ClCompile Include="Voice.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryBuf.h" />
@@ -149,6 +150,7 @@
     <ClInclude Include="Packet.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Profiler.h" />
+    <ClInclude Include="Voice.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

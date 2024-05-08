@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Profiler.h"
+#include "Voice.h"
+#include "Packet.h"
 
-struct Session {
+struct Client {
 	IOData sendIO{ };
 	IOData recvIO{ };
 };
@@ -33,6 +35,7 @@ public:
 
 	void ProcessChatPacket(Packet* pPacket);
 	void ProcessPositionPacket(Packet* pPacket);
+	void ProcessVoicePacket(Packet* pPacket);
 
 protected:
 	TimeProfiler m_timer{ };
@@ -52,5 +55,6 @@ private:
 
 	std::unordered_map<unsigned __int16, std::function<void(NetworkClient&, Packet*)>> m_processFuncs{};
 
-	Session m_processStruct{ };
+	Client m_processStruct{ };
+	std::unique_ptr<VoicePlayer> m_voicePlayer{ };
 };

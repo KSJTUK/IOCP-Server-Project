@@ -19,6 +19,9 @@ NetworkClient::NetworkClient() {
 		std::cout << std::format("[Fatal Error] I/O Completion Port Create Fail, Error Code: {}\n", ::GetLastError());
 		return;
 	}
+
+	m_voicePlayer = std::make_unique<VoicePlayer>();
+	m_voicePlayer->WavInit();
 }
 
 NetworkClient::~NetworkClient() {
@@ -86,7 +89,7 @@ bool NetworkClient::MainThread() {
 	bool ioComplete{ };
 	DWORD ioSize{ };
 	LPOVERLAPPED pOverlapped{ };
-	Session* pSession{ };
+	Client* pSession{ };
 
 	while (true) {
 		ioComplete = ::GetQueuedCompletionStatus(m_cpHandle,
@@ -131,6 +134,7 @@ void NetworkClient::StartServer() {
 
 	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &NetworkClient::ProcessChatPacket));
 	m_processFuncs.insert(std::make_pair(POS_TYPE, &NetworkClient::ProcessPositionPacket));
+	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &NetworkClient::ProcessVoicePacket));
 }
 
 void NetworkClient::RecvComplete(char* pData, size_t size) {
@@ -217,4 +221,9 @@ void NetworkClient::ProcessChatPacket(Packet* pPacket) {
 
 void NetworkClient::ProcessPositionPacket(Packet* pPacket) {
 	ConsoleIO::OutputString(pPacket->PrintPacket());
+}
+
+void NetworkClient::ProcessVoicePacket(Packet* pPacket) {
+	const char* data = reinterpret_cast<VoicePacket*>(pPacket)->GetBuffer();
+	m_voicePlayer->Play(data, RECORDE_BUFFER_SIZE);
 }

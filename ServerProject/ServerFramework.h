@@ -2,6 +2,7 @@
 
 #include "Client.h"
 #include "Profiler.h"
+#include "Packet.h"
 
 class NetworkServer abstract {
 public:
@@ -12,7 +13,7 @@ public:
 	bool BindAndListen(const unsigned __int16 port);
 	bool StartServer(const unsigned __int32 maxClient, unsigned __int32 maxThread = 0);
 
-	Session& GetClient(__int32 clientIndex);
+	Client& GetClient(__int32 clientIndex);
 
 	virtual void Connect(__int32 clientIndex) PURE;
 	virtual void Receive(__int32 clientIndex, std::size_t recvSize, char* pRecvData) PURE;
@@ -26,11 +27,11 @@ private:
 	void WorkThread();
 	void AcceptThread();
 
-	std::optional<std::reference_wrapper<Session>> GetUnConnectedClient();
+	std::optional<std::reference_wrapper<Client>> GetUnConnectedClient();
 
 protected:
 	TimeProfiler m_timer{ };
-	std::vector<Session> m_clients{ };
+	std::vector<Client> m_clients{ };
 
 private:
 	SOCKET m_listeningSocket{ INVALID_SOCKET };
@@ -67,6 +68,7 @@ private:
 	void ProcessingPacket();
 	void ProcessChatPacket(Packet* pPacket);
 	void ProcessPositionPacket(Packet* pPacket);
+	void ProcessVoicePacket(Packet* pPacket);
 
 private:
 	bool m_processingPacket{ true };

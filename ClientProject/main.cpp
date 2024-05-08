@@ -1,20 +1,23 @@
 ﻿#include "pch.h"
 #include "NetworkClient.h"
 #include "MemoryBuf.h"
+#include "Voice.h"
 
 int main(int argc, char* argv[])
 {
     TimeUtil::Init();
     short defaultPort{ 8080 };
 
-    //std::string serverIP{ "220.120.143.86" };
-    std::string serverIP{ "127.0.0.1" };
+    std::string serverIP{ "192.168.20.157" };
+    //std::string serverIP{ "127.0.0.1" };
 
-    NetworkClient nc{ };
-    nc.ConnectToServer(defaultPort, serverIP);
+    nc->ConnectToServer(defaultPort, serverIP);
 
-    nc.StartServer();
-    
+    nc->StartServer();
+
+	VoiceRecoder voice;
+	voice.WavInit();
+
     while (true) {
 #if SERVER_TEST       
         if (uidPacket(dre) == CHAT_TYPE) {
@@ -39,7 +42,7 @@ int main(int argc, char* argv[])
         std::string sendMsg{ };
         sendMsg = ConsoleIO::Input();
 
-        nc.InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(sendMsg));
+        nc->InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(sendMsg));
 
         std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
 #endif
