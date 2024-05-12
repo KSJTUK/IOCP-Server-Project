@@ -1,6 +1,5 @@
 #pragma once
 
-#include "MemoryBuf.h"
 #define MAX_CHAT_BUF 512
 
 // 패킷 타입을 지정할 enum class
@@ -24,9 +23,6 @@ public:
 	unsigned __int16 From() const { return m_header.from; }
 	void SetFrom(unsigned __int16 from) { m_header.from = from; }
 
-	virtual void Encode(MemoryBuf& buf) PURE;
-	virtual void Decode(MemoryBuf& buf) PURE;
-
 	virtual std::string PrintPacket() const PURE;
 
 protected:
@@ -43,17 +39,6 @@ public:
 
 	virtual unsigned __int16 Length() const { return m_header.length; }
 	virtual unsigned __int16 Type() const { return m_header.type; }
-
-	virtual void Encode(MemoryBuf& buf) {
-		buf << m_header.type;
-		buf << m_header.length;
-		buf << m_header.from;
-		buf << m_chatMessage;
-	}
-
-	virtual void Decode(MemoryBuf& buf) {
-		buf >> m_header.type >> m_header.length >> m_header.from >> m_chatMessage;
-	}
 
 	void SetMessage(std::string_view str) {
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
@@ -76,17 +61,6 @@ public:
 	virtual unsigned __int16 Length() const { return m_header.length; }
 	virtual unsigned __int16 Type() const { return m_header.type; }
 
-	virtual void Encode(MemoryBuf& buf) {
-		buf << m_header.type;
-		buf << m_header.length;
-		buf << m_header.from;
-		buf << x << y << z;
-	}
-
-	virtual void Decode(MemoryBuf& buf) {
-		buf >> m_header.type >> m_header.length >> m_header.from >> x >> y >> z;
-	}
-
 	virtual std::string PrintPacket() const {
 		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
 	}
@@ -108,17 +82,6 @@ public:
 	virtual unsigned __int16 Length() const { return m_header.length; }
 	virtual unsigned __int16 Type() const { return m_header.type; }
 
-	virtual void Encode(MemoryBuf& buf) {
-		buf << m_header.type;
-		buf << m_header.length;
-		buf << m_header.from;
-		buf << m_data;
-	}
-
-	virtual void Decode(MemoryBuf& buf) {
-		buf >> m_header.type >> m_header.length >> m_header.from >> m_data;
-	}
-
 	void SetVoiceData(char* data, size_t dataSize) {
 		std::memcpy(m_data.data(), data, dataSize);
 	}
@@ -132,9 +95,6 @@ private:
 };
 
 class PacketFacrory {
-public:
-	inline static std::unique_ptr<MemoryBuf> m_buffer = std::make_unique<MemoryBuf>();
-
 public:
 	static Packet* CreatePacket(PACKET_TYPE type) {
 		switch (type) {

@@ -161,8 +161,6 @@ void NetworkClient::PacketProcess() {
 }
 
 void NetworkClient::SendPacket() {
-	MemoryBuf buf{ };
-
 	DWORD ioSize{ };
 	DWORD flag{ };
 
@@ -193,19 +191,6 @@ void NetworkClient::SendPacket() {
 
 void NetworkClient::Run() {
 	StartServer();
-}
-
-void NetworkClient::InsertPacketQueue(char* pData) {
-	std::lock_guard<std::mutex> packetLock{ m_packetLock };
-
-	MemoryBuf buf{ };
-
-	Packet* pPacket{ PacketFacrory::CreatePacket(pData) };
-	buf.Write(pData, sizeof(pPacket->Length()));
-	pPacket->Decode(buf);
-	m_packetQueue.emplace_back(pPacket);
-
-	m_cv.notify_one();
 }
 
 void NetworkClient::InsertPacketQueue(Packet* pPacket) {

@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "NetworkClient.h"
-#include "MemoryBuf.h"
 #include "Voice.h"
 
 int main(int argc, char* argv[])
@@ -8,8 +7,8 @@ int main(int argc, char* argv[])
     TimeUtil::Init();
     short defaultPort{ 8080 };
 
-    std::string serverIP{ "192.168.20.157" };
-    //std::string serverIP{ "127.0.0.1" };
+    //std::string serverIP{ "192.168.20.157" };
+    std::string serverIP{ "127.0.0.1" };
 
     nc->ConnectToServer(defaultPort, serverIP);
 

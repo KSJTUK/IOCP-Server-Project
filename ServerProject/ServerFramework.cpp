@@ -228,8 +228,6 @@ bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 }
 
 void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
-	MemoryBuf buf{ };
-
 	Packet* pPacket{ PacketFacrory::CreatePacket(pData) };
 	std::memcpy(DerivedCpyPointer(pPacket), pData, pPacket->Length());
 	pPacket->SetFrom(clientIndex);

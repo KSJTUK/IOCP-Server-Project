@@ -30,7 +30,6 @@ public:
 
 	void Run();
 
-	void InsertPacketQueue(char* pData);
 	void InsertPacketQueue(Packet* pPacket);
 
 	void ProcessChatPacket(Packet* pPacket);

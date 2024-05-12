@@ -134,7 +134,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MemoryBuf.cpp" />
     <ClCompile Include="NetworkClient.cpp" />
     <ClCompile Include="Packet.cpp" />
     <ClCompile Include="pch.cpp">
@@ -145,7 +144,6 @@
     <ClCompile Include="Voice.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MemoryBuf.h" />
     <ClInclude Include="NetworkClient.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="pch.h" />
