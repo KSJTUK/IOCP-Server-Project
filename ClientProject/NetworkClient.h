@@ -31,12 +31,17 @@ public:
 
 	void InsertPacketQueue(Packet* pPacket);
 
+	void ProcessCreateTypePacket(Packet* pPacket);
 	void ProcessChatPacket(Packet* pPacket);
 	void ProcessPositionPacket(Packet* pPacket);
 	void ProcessVoicePacket(Packet* pPacket);
 
+public:
+	void SetClientId(std::string_view id);
+
 protected:
 	TimeProfiler m_timer{ };
+	std::string m_id{ };
 
 private:
 	SOCKET m_socket{ };

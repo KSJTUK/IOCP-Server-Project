@@ -12,6 +12,8 @@ inline constexpr int RECORDE_MILLISEC = 500;
 inline constexpr int RECORDE_HZ = 8000;
 inline constexpr int RECORDE_CHANNEL = 1;
 inline constexpr int RECORDE_BUFFER_SIZE = int((RECORDE_HZ * RECORDE_CHANNEL) * (RECORDE_MILLISEC / 1000.0f));
+
+inline constexpr int MAX_ID = 32;
 inline constexpr int MAX_CHAT_BUF = 512;
 
 template <typename DerivedType>
@@ -22,6 +24,7 @@ inline void* DerivedCpyPointer(DerivedType* pData)
 
 // 패킷 타입을 지정할 enum class
 enum PACKET_TYPE : unsigned __int16 {
+	CREATE_TYPE,
 	CHAT_TYPE,
 	POS_TYPE,
 	VOICE_TYPE,
@@ -31,20 +34,37 @@ struct PCHEADER {
 	unsigned __int16 type{ };
 	unsigned __int16 length{ };
 	unsigned __int16 from{ };
+	std::array<char, MAX_ID> id{ };
 };
 
 class Packet abstract {
 public:
-	virtual unsigned __int16 Length() const PURE;
-	virtual unsigned __int16 Type() const PURE;
+	unsigned __int16 Length() const { return m_header.length; }
+	unsigned __int16 Type() const { return m_header.type; }
 
 	unsigned __int16 From() const { return m_header.from; }
 	void SetFrom(unsigned __int16 from) { m_header.from = from; }
+
+	void SetId(const std::string_view id) {
+		std::copy(id.begin(), id.end(), m_header.id.data());
+	}
+
+	std::string_view GetId() const { return m_header.id.data(); }
 
 	virtual std::string PrintPacket() const PURE;
 
 protected:
 	PCHEADER m_header{ };
+};
+
+class IdPacket : public Packet {
+public:
+	IdPacket() { m_header = { CREATE_TYPE, static_cast<unsigned short>(sizeof(*this) - sizeof(Packet*)) }; }
+	IdPacket(std::string_view id) { 
+		m_header = { CREATE_TYPE, static_cast<unsigned short>(sizeof(*this) - sizeof(Packet*)) }; 
+		SetId(id);
+	}
+	virtual std::string PrintPacket() const { return ""; }
 };
 
 class ChatPacket : public Packet {
@@ -55,15 +75,12 @@ public:
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
 	}
 
-	virtual unsigned __int16 Length() const { return m_header.length; }
-	virtual unsigned __int16 Type() const { return m_header.type; }
-
 	void SetMessage(std::string_view str) {
 		std::copy(str.begin(), str.end(), m_chatMessage.data());
 	}
 
 	virtual std::string PrintPacket() const {
-		return std::format("From {}: {}\n", m_header.from, m_chatMessage.data());
+		return std::format("From {}: {}\n", m_header.id.data(), m_chatMessage.data());
 	}
 
 protected:
@@ -76,9 +93,6 @@ public:
 	PositionPacket(float x, float y, float z) : x{ x }, y{ y }, z{ z } { m_header = { POS_TYPE, sizeof(*this) - sizeof(Packet*), }; }
 
 public:
-	virtual unsigned __int16 Length() const { return m_header.length; }
-	virtual unsigned __int16 Type() const { return m_header.type; }
-
 	virtual std::string PrintPacket() const {
 		return std::format("Packet Type: Position, Packet Data: ({}, {}, {})\n", x, y, z);
 	}
@@ -97,9 +111,6 @@ public:
 		std::memcpy(m_data.data(), data, dataSize);
 	}
 
-	virtual unsigned __int16 Length() const { return m_header.length; }
-	virtual unsigned __int16 Type() const { return m_header.type; }
-
 	void SetVoiceData(char* data, size_t dataSize) {
 		std::memcpy(m_data.data(), data, dataSize);
 	}
@@ -112,10 +123,13 @@ private:
 	std::array<char, RECORDE_BUFFER_SIZE> m_data{ };
 };
 
-class PacketFacrory {
+class PacketFactory {
 public:
 	static Packet* CreatePacket(PACKET_TYPE type) {
 		switch (type) {
+		case CREATE_TYPE:
+			return new IdPacket{ };
+
 		case CHAT_TYPE:
 			return new ChatPacket{ };
 

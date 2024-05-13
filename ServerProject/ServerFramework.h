@@ -67,6 +67,7 @@ public:
 
 private:
 	void ProcessingPacket();
+	void ProcessCreateTypePacket(Packet* pPacket);
 	void ProcessChatPacket(Packet* pPacket);
 	void ProcessPositionPacket(Packet* pPacket);
 	void ProcessVoicePacket(Packet* pPacket);

@@ -132,6 +132,7 @@ void NetworkClient::StartServer() {
 	m_packetProcThread = std::jthread{ [this]() { PacketProcess(); } };
 	m_mainThread = std::jthread{ [this]() { MainThread();  } };
 
+	m_processFuncs.insert(std::make_pair(CREATE_TYPE, &NetworkClient::ProcessCreateTypePacket));
 	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &NetworkClient::ProcessChatPacket));
 	m_processFuncs.insert(std::make_pair(POS_TYPE, &NetworkClient::ProcessPositionPacket));
 	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &NetworkClient::ProcessVoicePacket));
@@ -140,7 +141,7 @@ void NetworkClient::StartServer() {
 void NetworkClient::RecvComplete(char* pData, size_t size) {
 	std::lock_guard packetLock{ m_packetLock };
 
-	std::unique_ptr<Packet> tempPacket{ PacketFacrory::CreatePacket(pData) };
+	std::unique_ptr<Packet> tempPacket{ PacketFactory::CreatePacket(pData) };
 	std::memcpy(DerivedCpyPointer(tempPacket.get()), pData, size);
 	m_processFuncs[tempPacket->Type()](*this, tempPacket.get());
 }
@@ -195,9 +196,12 @@ void NetworkClient::Run() {
 
 void NetworkClient::InsertPacketQueue(Packet* pPacket) {
 	std::lock_guard<std::mutex> packetLock{ m_packetLock };
-
+	pPacket->SetId(m_id);
 	m_packetQueue.emplace_back(pPacket);
 	m_cv.notify_one();
+}
+
+void NetworkClient::ProcessCreateTypePacket(Packet* pPacket) {
 }
 
 void NetworkClient::ProcessChatPacket(Packet* pPacket) {
@@ -211,4 +215,9 @@ void NetworkClient::ProcessPositionPacket(Packet* pPacket) {
 void NetworkClient::ProcessVoicePacket(Packet* pPacket) {
 	const char* data = reinterpret_cast<VoicePacket*>(pPacket)->GetBuffer();
 	m_voicePlayer->Play(data, RECORDE_BUFFER_SIZE);
+}
+
+void NetworkClient::SetClientId(std::string_view id) {
+	m_id = id;
+	InsertPacketQueue(PacketFactory::CreatePacket<IdPacket>(id));
 }

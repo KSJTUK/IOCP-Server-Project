@@ -193,7 +193,7 @@ void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvD
 
 	m_timer.SetTimeStamp();
 
-	Packet* packet{ PacketFacrory::CreatePacket(pRecvData) };
+	Packet* packet{ PacketFactory::CreatePacket(pRecvData) };
 	std::memcpy(DerivedCpyPointer(packet), pRecvData, recvByte);
 	packet->SetFrom(clientIndex);
 	m_packetQueue.emplace_back(packet);
@@ -232,7 +232,7 @@ bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 }
 
 void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
-	Packet* pPacket{ PacketFacrory::CreatePacket(pData) };
+	Packet* pPacket{ PacketFactory::CreatePacket(pData) };
 	std::memcpy(DerivedCpyPointer(pPacket), pData, pPacket->Length());
 	pPacket->SetFrom(clientIndex);
 	m_packetQueue.emplace_back(pPacket);
@@ -257,6 +257,10 @@ void EchoServer::ProcessingPacket() {
 	}
 }
 
+void EchoServer::ProcessCreateTypePacket(Packet* pPacket) {
+	m_clients[pPacket->From()].SetId(pPacket->GetId());
+}
+
 void EchoServer::ProcessChatPacket(Packet* pPacket) {
 }
 
@@ -269,6 +273,7 @@ void EchoServer::ProcessVoicePacket(Packet* pPacket) {
 void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
 
+	m_processFuncs.insert(std::make_pair(CREATE_TYPE, &EchoServer::ProcessCreateTypePacket));
 	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &EchoServer::ProcessChatPacket));
 	m_processFuncs.insert(std::make_pair(POS_TYPE, &EchoServer::ProcessPositionPacket));
 	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &EchoServer::ProcessVoicePacket));

@@ -22,6 +22,11 @@ int main(int argc, char* argv[])
 	voice.WavInit();
 
 	std::string sendMsg{ };
+
+	std::cout << "[ID를 입력해주세요] (최대 16자): ";
+	std::getline(std::cin, sendMsg);
+	nc->SetClientId(sendMsg);
+
 	while (true) {
 #if SERVER_TEST
 		if (uidPacket(dre) == CHAT_TYPE) {
@@ -44,7 +49,7 @@ int main(int argc, char* argv[])
 		std::this_thread::sleep_for(std::chrono::milliseconds{ TEST_TIME_MS });
 #else
 		std::getline(std::cin, sendMsg);
-		nc->InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(sendMsg));
+		nc->InsertPacketQueue(PacketFactory::CreatePacket<ChatPacket>(sendMsg));
 
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
 #endif

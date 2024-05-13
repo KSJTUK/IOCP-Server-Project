@@ -51,8 +51,8 @@ void VoiceRecoder::WavCallBackProc(HWAVEIN waveIn, UINT msg, DWORD_PTR instance,
 	case WIM_DATA:
 	{
 		WAVEHDR* data = reinterpret_cast<WAVEHDR*>(param1);
-		Packet* voicePacket = PacketFacrory::CreatePacket<VoicePacket>(data->lpData, data->dwBytesRecorded);
-		nc->InsertPacketQueue(voicePacket);
+		//Packet* voicePacket = PacketFactory::CreatePacket<VoicePacket>(data->lpData, data->dwBytesRecorded);
+		//nc->InsertPacketQueue(voicePacket);
 
 		if (::waveInPrepareHeader(waveIn, data, sizeof(WAVEHDR))) {
 			std::cout << "음성 재녹음 준비 실패" << std::endl;
