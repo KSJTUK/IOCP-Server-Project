@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Client.h"
-#include "Packet.h"
 
 Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET } {
 	ZeroMemory(std::addressof(m_recvIO), sizeof(IOData));
@@ -9,7 +8,9 @@ Client::Client(__int32 index) : m_index{ index }, m_socket{ INVALID_SOCKET } {
 Client::Client(const Client&& other) noexcept : m_index{ other.m_index }, m_socket{ other.m_socket } {
 }
 
-Client::~Client() { }
+Client::~Client() { 
+	CloseSocket();
+}
 
 bool Client::Connect(HANDLE cpHandle, SOCKET socket) {
 	m_socket = socket;

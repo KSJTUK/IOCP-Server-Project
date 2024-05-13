@@ -184,6 +184,10 @@ std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClien
 	return std::nullopt;
 }
 
+EchoServer::~EchoServer() {
+	m_processingPacket = false;
+}
+
 void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
 	std::lock_guard<std::mutex> packetGuard(m_packetLock);
 
@@ -218,7 +222,7 @@ bool EchoServer::SendPacket(__int32 clientIndex, Packet* pPacket) {
 
 bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 	for (auto& client : m_clients) {
-		if (client.GetSocket() != INVALID_SOCKET) {
+		if (client.GetSocket() != INVALID_SOCKET and client.GetIndex() != pPacket->From()) {
 			client.SendPacketData(pPacket);
 		}
 	}
@@ -270,8 +274,4 @@ void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &EchoServer::ProcessVoicePacket));
 
 	StartServer(maxClient, maxThread);
-}
-
-void EchoServer::End() {
-	m_processingPacket = false;
 }

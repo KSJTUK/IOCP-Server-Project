@@ -2,7 +2,6 @@
 
 #include "Client.h"
 #include "Profiler.h"
-#include "Packet.h"
 
 class NetworkServer abstract {
 public:
@@ -52,6 +51,9 @@ private:
 // --------------------------------------------
 class EchoServer : public NetworkServer {
 public:
+	virtual ~EchoServer();
+
+public:
 	virtual void Connect(__int32 clientIndex) override { };
 	virtual void Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData);
 	virtual void Close(__int32 clientIndex) override;
@@ -62,7 +64,6 @@ public:
 	void InsertPacketQueue(char* pData, __int32 clientIndex);
 
 	void Run(unsigned __int32 maxClient, unsigned __int32 maxThread=0);
-	void End();
 
 private:
 	void ProcessingPacket();

@@ -2,7 +2,6 @@
 
 #include "Profiler.h"
 #include "Voice.h"
-#include "Packet.h"
 
 struct Client {
 	IOData sendIO{ };

@@ -55,14 +55,6 @@ public:
 		m_cv.notify_one();
 	}
 
-	static std::string Input()
-	{
-		std::string sendMsg{ };
-		std::getline(std::cin, sendMsg);
-
-		return sendMsg;
-	}
-
 	static void Print()
 	{
 		std::cout << m_outputs.front();

@@ -1,6 +1,24 @@
 #pragma once
 
-#define MAX_CHAT_BUF 512
+#include <Windows.h>
+#include <string>
+#include <array>
+#include <string_view>
+#include <format>
+
+inline constexpr unsigned __int32 MAX_BUFFER_SIZE{ 8096 };
+inline constexpr unsigned __int32 MAX_PACKET_SIZE{ 512 };
+inline constexpr int RECORDE_MILLISEC = 500;
+inline constexpr int RECORDE_HZ = 8000;
+inline constexpr int RECORDE_CHANNEL = 1;
+inline constexpr int RECORDE_BUFFER_SIZE = int((RECORDE_HZ * RECORDE_CHANNEL) * (RECORDE_MILLISEC / 1000.0f));
+inline constexpr int MAX_CHAT_BUF = 512;
+
+template <typename DerivedType>
+inline void* DerivedCpyPointer(DerivedType* pData)
+{
+	return reinterpret_cast<char*>(pData) + sizeof(DerivedType*);
+}
 
 // 패킷 타입을 지정할 enum class
 enum PACKET_TYPE : unsigned __int16 {
@@ -31,7 +49,7 @@ protected:
 
 class ChatPacket : public Packet {
 public:
-	ChatPacket() { m_header = { CHAT_TYPE, sizeof(*this) - MAX_CHAT_BUF - sizeof(Packet*), }; }
+	ChatPacket() { m_header = { CHAT_TYPE, static_cast<unsigned short>(sizeof(*this) - MAX_CHAT_BUF - sizeof(Packet*)), }; }
 	ChatPacket(std::string_view str) {
 		m_header = { CHAT_TYPE, static_cast <unsigned __int16>(sizeof(*this) - MAX_CHAT_BUF - sizeof(Packet*) + str.size()) };
 		std::copy(str.begin(), str.end(), m_chatMessage.data());

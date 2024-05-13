@@ -20,6 +20,9 @@
 #include <unordered_map>
 #include <functional>
 
+#include "Packets/Packet.h"
+#pragma comment(lib, "../PacketLib/Packets.lib")
+
 #pragma region FOR_TEST
 #define SERVER_TEST 0
 
@@ -40,18 +43,10 @@ inline std::uniform_real_distribution<float> ufd{ 0.f, 100.f };
 #endif
 #pragma endregion
 
-inline constexpr int MAX_BUFFER_SIZE{ 8096 };
-inline constexpr int MAX_PACKET_SIZE{ 512 };
-inline constexpr int RECORDE_MILLISEC = 500;
-inline constexpr int RECORDE_HZ = 8000;
-inline constexpr int RECORDE_CHANNEL = 1;
-inline constexpr int RECORDE_BUFFER_SIZE = (int)(RECORDE_HZ * RECORDE_CHANNEL) * (RECORDE_MILLISEC / 1000.0f);
-
-template <typename DerivedType>
-inline void* DerivedCpyPointer(DerivedType* pData)
-{
-    return reinterpret_cast<char*>(pData) + sizeof(DerivedType*);
-}
+#ifdef _DEBUG
+#include <crtdbg.h>
+#define CRT_START _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif
 
 class TimeUtil {
 public:
