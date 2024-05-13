@@ -16,13 +16,6 @@ NetworkServer::NetworkServer() {
 }
 
 NetworkServer::~NetworkServer() {
-	m_workThreadRunning = false;
-	::CloseHandle(m_cpHandle);
-
-	m_acceptThreadRunning = false;
-	::closesocket(m_listeningSocket);
-
-	::WSACleanup();
 }
 
 bool NetworkServer::BindAndListen(const unsigned __int16 port) {
@@ -175,6 +168,16 @@ void NetworkServer::AcceptThread() {
 	}
 }
 
+void NetworkServer::End() {
+	m_workThreadRunning = false;
+	::CloseHandle(m_cpHandle);
+
+	m_acceptThreadRunning = false;
+	::closesocket(m_listeningSocket);
+
+	::WSACleanup();
+}
+
 std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClient() {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() == INVALID_SOCKET) {
@@ -185,7 +188,6 @@ std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClien
 }
 
 EchoServer::~EchoServer() {
-	m_processingPacket = false;
 }
 
 void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
@@ -279,4 +281,9 @@ void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &EchoServer::ProcessVoicePacket));
 
 	StartServer(maxClient, maxThread);
+}
+
+void EchoServer::End() {
+	m_processingPacket = false;
+	NetworkServer::End();
 }

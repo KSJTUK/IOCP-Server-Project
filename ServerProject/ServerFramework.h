@@ -18,6 +18,9 @@ public:
 	virtual void Receive(__int32 clientIndex, std::size_t recvSize, char* pRecvData) PURE;
 	virtual void Close(__int32 clientIndex) PURE;
 
+protected:
+	void End();
+
 private:
 	void CreateClients(const unsigned __int32 maxClient);
 	bool RunIOWorkThread(unsigned __int32 maxThread);
@@ -25,6 +28,7 @@ private:
 
 	void WorkThread();
 	void AcceptThread();
+
 
 	std::optional<std::reference_wrapper<Client>> GetUnConnectedClient();
 
@@ -51,6 +55,7 @@ private:
 // --------------------------------------------
 class EchoServer : public NetworkServer {
 public:
+	EchoServer() { };
 	virtual ~EchoServer();
 
 public:
@@ -64,6 +69,7 @@ public:
 	void InsertPacketQueue(char* pData, __int32 clientIndex);
 
 	void Run(unsigned __int32 maxClient, unsigned __int32 maxThread=0);
+	void End();
 
 private:
 	void ProcessingPacket();

@@ -19,9 +19,15 @@ int main()
 
 	echoServer->Run(MAX_CLIENT, MAX_THREAD);
 
+	std::string msg{ };
 	while (true) {
-
+		std::getline(std::cin, msg);
+		if (msg == "quit") {
+			break;
+		}
 	}
+
+	echoServer->End();
 
 	TimeUtil::End();
 	ConsoleIO::End();
