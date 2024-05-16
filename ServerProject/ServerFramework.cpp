@@ -187,10 +187,10 @@ std::optional<std::reference_wrapper<Client>> NetworkServer::GetUnConnectedClien
 	return std::nullopt;
 }
 
-EchoServer::~EchoServer() {
+ChatingServer::~ChatingServer() {
 }
 
-void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
+void ChatingServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvData) {
 	std::lock_guard<std::mutex> packetGuard(m_packetLock);
 
 	m_timer.SetTimeStamp();
@@ -205,7 +205,7 @@ void EchoServer::Receive(__int32 clientIndex, std::size_t recvByte, char* pRecvD
 	m_cv.notify_one();
 }
 
-void EchoServer::Close(__int32 clientIndex) {
+void ChatingServer::Close(__int32 clientIndex) {
 	Client& client{ GetClient(clientIndex) };
 	sockaddr_in clientAddress{ };
 	int addressLength{ sizeof(sockaddr_in) };
@@ -215,14 +215,14 @@ void EchoServer::Close(__int32 clientIndex) {
 	ConsoleIO::OutputString(std::format("Client [SOCKET: {} | index: {}] is disconnected\n", client.GetSocket(), client.GetIndex()));
 }
 
-bool EchoServer::SendPacket(__int32 clientIndex, Packet* pPacket) {
+bool ChatingServer::SendPacket(__int32 clientIndex, Packet* pPacket) {
 	Client& client{ GetClient(clientIndex) };
 	bool rtVal = client.SendPacketData(pPacket);
 	delete pPacket;
 	return rtVal;
 }
 
-bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
+bool ChatingServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 	for (auto& client : m_clients) {
 		if (client.GetSocket() != INVALID_SOCKET and client.GetIndex() != pPacket->From()) {
 			client.SendPacketData(pPacket);
@@ -233,7 +233,7 @@ bool EchoServer::SendAll(__int32 clientIndex, Packet* pPacket) {
 	return true;
 }
 
-void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
+void ChatingServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
 	Packet* pPacket{ PacketFactory::CreatePacket(pData) };
 	std::memcpy(DerivedCpyPointer(pPacket), pData, pPacket->Length());
 	pPacket->SetFrom(clientIndex);
@@ -242,7 +242,7 @@ void EchoServer::InsertPacketQueue(char* pData, __int32 clientIndex) {
 	m_cv.notify_one();
 }
 
-void EchoServer::ProcessingPacket() {
+void ChatingServer::ProcessingPacket() {
 	while (m_processingPacket) {
 		std::unique_lock lock{ m_packetLock };
 
@@ -259,31 +259,31 @@ void EchoServer::ProcessingPacket() {
 	}
 }
 
-void EchoServer::ProcessCreateTypePacket(Packet* pPacket) {
+void ChatingServer::ProcessCreateTypePacket(Packet* pPacket) {
 	m_clients[pPacket->From()].SetId(pPacket->GetId());
 }
 
-void EchoServer::ProcessChatPacket(Packet* pPacket) {
+void ChatingServer::ProcessChatPacket(Packet* pPacket) {
 }
 
-void EchoServer::ProcessPositionPacket(Packet* pPacket) {
+void ChatingServer::ProcessPositionPacket(Packet* pPacket) {
 }
 
-void EchoServer::ProcessVoicePacket(Packet* pPacket) {
+void ChatingServer::ProcessVoicePacket(Packet* pPacket) {
 }
 
-void EchoServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
+void ChatingServer::Run(unsigned __int32 maxClient, unsigned __int32 maxThread) {
 	m_procPacketThread = std::jthread{ [this]() { ProcessingPacket(); } };
 
-	m_processFuncs.insert(std::make_pair(CREATE_TYPE, &EchoServer::ProcessCreateTypePacket));
-	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &EchoServer::ProcessChatPacket));
-	m_processFuncs.insert(std::make_pair(POS_TYPE, &EchoServer::ProcessPositionPacket));
-	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &EchoServer::ProcessVoicePacket));
+	m_processFuncs.insert(std::make_pair(CREATE_TYPE, &ChatingServer::ProcessCreateTypePacket));
+	m_processFuncs.insert(std::make_pair(CHAT_TYPE, &ChatingServer::ProcessChatPacket));
+	m_processFuncs.insert(std::make_pair(POS_TYPE, &ChatingServer::ProcessPositionPacket));
+	m_processFuncs.insert(std::make_pair(VOICE_TYPE, &ChatingServer::ProcessVoicePacket));
 
 	StartServer(maxClient, maxThread);
 }
 
-void EchoServer::End() {
+void ChatingServer::End() {
 	m_processingPacket = false;
 	NetworkServer::End();
 }

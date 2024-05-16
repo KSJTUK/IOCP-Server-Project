@@ -53,10 +53,10 @@ private:
 };
 
 // --------------------------------------------
-class EchoServer : public NetworkServer {
+class ChatingServer : public NetworkServer {
 public:
-	EchoServer() { };
-	virtual ~EchoServer();
+	ChatingServer() { };
+	virtual ~ChatingServer();
 
 public:
 	virtual void Connect(__int32 clientIndex) override { };
@@ -86,7 +86,7 @@ private:
 	std::jthread m_procPacketThread{ };
 	std::mutex m_packetLock{ };
 	std::deque<Packet*> m_packetQueue{ };
-	std::unordered_map<unsigned __int16, std::function<void(EchoServer&, Packet*)>> m_processFuncs{ };
+	std::unordered_map<unsigned __int16, std::function<void(ChatingServer&, Packet*)>> m_processFuncs{ };
 };
 
 // --------------------------------------------

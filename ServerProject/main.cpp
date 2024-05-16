@@ -5,7 +5,7 @@ constexpr short DEFAULT_PORT{ 8080 };
 constexpr __int32 MAX_CLIENT{ 50 };
 constexpr __int32 MAX_THREAD{ 4 };
 
-std::unique_ptr<EchoServer> echoServer = std::make_unique<EchoServer>();
+std::unique_ptr<ChatingServer> chatServer = std::make_unique<ChatingServer>();
 
 int main()
 {
@@ -15,9 +15,9 @@ int main()
 
 	TimeUtil::Init();
 
-	echoServer->BindAndListen(DEFAULT_PORT);
+	chatServer->BindAndListen(DEFAULT_PORT);
 
-	echoServer->Run(MAX_CLIENT, MAX_THREAD);
+	chatServer->Run(MAX_CLIENT, MAX_THREAD);
 
 	std::string msg{ };
 	while (true) {
@@ -27,7 +27,7 @@ int main()
 		}
 	}
 
-	echoServer->End();
+	chatServer->End();
 
 	TimeUtil::End();
 	ConsoleIO::End();

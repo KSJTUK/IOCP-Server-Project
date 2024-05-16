@@ -37,10 +37,10 @@ int main(int argc, char* argv[])
 				c = static_cast<char>(uidChar(dre));
 			}
 
-			nc.InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(str));
+			nc->InsertPacketQueue(PacketFacrory::CreatePacket<ChatPacket>(str));
 		}
 		else {
-			nc.InsertPacketQueue(PacketFacrory::CreatePacket<PositionPacket>(
+			nc->InsertPacketQueue(PacketFacrory::CreatePacket<PositionPacket>(
 				ufd(dre), ufd(dre), ufd(dre)
 			));
 		}
