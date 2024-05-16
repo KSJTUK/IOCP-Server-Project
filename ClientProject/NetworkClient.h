@@ -1,7 +1,45 @@
 #pragma once
 
-#include "Profiler.h"
+
+#include <winsock2.h>
+#include <WS2tcpip.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
 #include "Voice.h"
+
+#include <deque>
+#include <mutex>
+#include <string>
+#include <sstream>
+#include <format>
+#include <thread>
+#include <chrono>
+#include <array>
+#include <iostream>
+#include <unordered_map>
+#include <functional>
+
+#include "../Packets/Packet.h"
+#pragma comment(lib, "../Lib/Packets.lib")
+
+enum class IO_TYPE {
+	RECV,
+	SEND
+};
+
+struct IOData {
+	OVERLAPPED overlapped{ };
+	WSABUF wsaBuf{ };
+	IO_TYPE ioType{ };
+
+	std::array<char, MAX_BUFFER_SIZE> buffer{ };
+
+public:
+	void BufClear() {
+		buffer.fill(0);
+	}
+};
 
 struct Client {
 	IOData sendIO{ };
@@ -40,7 +78,6 @@ public:
 	void SetClientId(std::string_view id);
 
 protected:
-	TimeProfiler m_timer{ };
 	std::string m_id{ };
 
 private:
@@ -61,3 +98,30 @@ private:
 	Client m_processStruct{ };
 	std::unique_ptr<VoicePlayer> m_voicePlayer{ };
 };
+
+
+// not server func
+#pragma region FOR_TEST
+#define SERVER_TEST 0
+
+#if SERVER_TEST
+
+#define TEST_TIME_MS 2000
+#define MIN_RAND_MESSAGE_LENGTH 10
+#define MAX_RAND_MESSAGE_LENGTH 100
+
+#include <random>
+inline std::random_device rd{ };
+inline std::default_random_engine dre{ rd() };
+inline std::uniform_int_distribution uidLength{ MIN_RAND_MESSAGE_LENGTH, MAX_RAND_MESSAGE_LENGTH };
+inline std::uniform_int_distribution<int> uidChar{ 'a', 'z' };
+inline std::uniform_int_distribution<unsigned __int16> uidPacket{ CHAT_TYPE, POS_TYPE };
+inline std::uniform_real_distribution<float> ufd{ 0.f, 100.f };
+
+#endif
+#pragma endregion
+
+#ifdef _DEBUG
+#include <crtdbg.h>
+#define CRT_START _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif

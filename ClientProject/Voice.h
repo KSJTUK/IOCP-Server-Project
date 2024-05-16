@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma comment(lib, "winmm.lib")
+#include <winsock2.h>
+
 struct WAVRECODER {
 	WAVEFORMATEX wavFormat; // 웨이브 파일 포맷
 	// input
@@ -23,7 +26,7 @@ public:
 	void WavInit();
 
 private:
-	static void CALLBACK WavCallBackProc(HWAVEIN waveIn, UINT msg, DWORD_PTR instance, DWORD_PTR param1, DWORD_PTR param2);
+	static void __stdcall WavCallBackProc(HWAVEIN waveIn, UINT msg, DWORD_PTR instance, DWORD_PTR param1, DWORD_PTR param2);
 
 private:
 	WAVRECODER m_wavRecoder{ };

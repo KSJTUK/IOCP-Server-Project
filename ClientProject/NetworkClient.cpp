@@ -1,4 +1,4 @@
-#include "pch.h"
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include "NetworkClient.h"
 
 NetworkClient::NetworkClient() {
@@ -205,11 +205,9 @@ void NetworkClient::ProcessCreateTypePacket(Packet* pPacket) {
 }
 
 void NetworkClient::ProcessChatPacket(Packet* pPacket) {
-	ConsoleIO::OutputString(pPacket->PrintPacket());
 }
 
 void NetworkClient::ProcessPositionPacket(Packet* pPacket) {
-	ConsoleIO::OutputString(pPacket->PrintPacket());
 }
 
 void NetworkClient::ProcessVoicePacket(Packet* pPacket) {

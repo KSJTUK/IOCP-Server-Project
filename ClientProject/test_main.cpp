@@ -1,14 +1,15 @@
-﻿#include "pch.h"
-#include "NetworkClient.h"
+﻿#include "NetworkClient.h"
 #include "Voice.h"
+
+// 데이터 전달 테스트용 cpp
 
 int main(int argc, char* argv[])
 {
 #ifdef _DEBUG
 	CRT_START;
 #endif
+	std::unique_ptr<NetworkClient> nc = std::make_unique<NetworkClient>();
 
-	TimeUtil::Init();
 	short defaultPort{ 8080 };
 
 	//std::string serverIP{ "192.168.20.157" };
@@ -54,7 +55,4 @@ int main(int argc, char* argv[])
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 100 });
 #endif
 	}
-
-	TimeUtil::End();
-	ConsoleIO::End();
 }

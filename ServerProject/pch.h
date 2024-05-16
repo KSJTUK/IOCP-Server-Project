@@ -22,7 +22,7 @@
 #include <syncstream>
 
 #include "Packets/Packet.h"
-#pragma comment(lib, "../PacketLib/Packets.lib")
+#pragma comment(lib, "../Lib/Packets.lib")
 
 #ifdef _DEBUG
 #include <crtdbg.h>
