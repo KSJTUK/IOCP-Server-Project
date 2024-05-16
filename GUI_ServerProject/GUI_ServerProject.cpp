@@ -16,7 +16,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
-    std::unique_ptr<GUIFramework> game = std::make_unique<GUIFramework>();
+    std::unique_ptr<MainGuiFramework> game = std::make_unique<MainGuiFramework>();
     if (!game->Init(hInstance)) {
         return EXIT_FAILURE;
     }

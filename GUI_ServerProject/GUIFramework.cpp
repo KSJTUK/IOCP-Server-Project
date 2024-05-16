@@ -3,19 +3,21 @@
 #include "framework.h"
 #include "Resource.h"
 
-bool GUIFramework::Init(HINSTANCE inst) {
+bool MainGuiFramework::Init(HINSTANCE inst) {
     m_instance = inst;
 
-    auto result = MyResisterClass();
-    auto r = ::GetLastError();
+    MyResisterClass();
     if (!CreateMainWindow()) {
         return false;
     }
 
+    m_backBuffer.CreateBuffers(m_window);
+    CreateEditBox();
+
 	return true;
 }
 
-bool GUIFramework::CreateMainWindow() {
+bool MainGuiFramework::CreateMainWindow() {
     m_window = ::CreateWindowW(m_titleW.c_str(), m_titleW.c_str(), WS_OVERLAPPEDWINDOW,
         100, 100, m_clientArea.width, m_clientArea.height, nullptr, nullptr, m_instance, nullptr);
 
@@ -29,13 +31,13 @@ bool GUIFramework::CreateMainWindow() {
     return true;
 }
 
-ATOM GUIFramework::MyResisterClass() {
+ATOM MainGuiFramework::MyResisterClass() {
     WNDCLASSEXW wcex;
 
     wcex.cbSize = sizeof(WNDCLASSEX);
 
     wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = GUIFramework::WndMsgProc;
+    wcex.lpfnWndProc = MainGuiFramework::WndMsgProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = m_instance;
@@ -49,11 +51,18 @@ ATOM GUIFramework::MyResisterClass() {
     return RegisterClassExW(&wcex);
 }
 
-void GUIFramework::FrameAdvance() {
+//bool MainGuiFramework::CreateEditBox() {
+//    m_editWindow = ::CreateWindowW(L"edit", NULL, WS_BORDER | WS_CHILD | WS_VISIBLE | ES_NUMBER | ES_RIGHT, 20, 20, 100, 25, m_window, NULL, m_instance, NULL);
+//    return true;
+//}
 
+void MainGuiFramework::FrameAdvance() {
+    /*m_backBuffer.ClearBuffer();
+
+    m_backBuffer.Present();*/
 }
 
-void GUIFramework::Run() {
+void MainGuiFramework::Run() {
     HACCEL hAccelTable = LoadAccelerators(m_instance, MAKEINTRESOURCE(IDC_GUISERVERPROJECT));
     MSG msg;
 
@@ -74,8 +83,11 @@ void GUIFramework::Run() {
     }
 }
 
-LRESULT __stdcall GUIFramework::WndMsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+LRESULT __stdcall MainGuiFramework::WndMsgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
+    case WM_CREATE:
+        break;
+
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
@@ -93,4 +105,45 @@ LRESULT __stdcall GUIFramework::WndMsgProc(HWND hWnd, UINT message, WPARAM wPara
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
+}
+
+SwapBuffer::SwapBuffer() { }
+
+SwapBuffer::~SwapBuffer() {
+    ::DeleteObject(m_bgBrush);
+    ::DeleteObject(m_bgPen);
+    ::DeleteObject(m_backBuffer);
+    ::DeleteDC(m_memDc);
+    ::ReleaseDC(m_window, m_mainDc);
+}
+
+void SwapBuffer::CreateBuffers(HWND window) {
+    m_window = window;
+    m_mainDc = ::GetDC(m_window);
+    m_memDc = ::CreateCompatibleDC(m_mainDc);
+    ::GetClientRect(window, &m_clientRc);
+    m_backBuffer = ::CreateCompatibleBitmap(m_memDc, m_clientRc.right - m_clientRc.left, m_clientRc.bottom - m_clientRc.top);
+
+    m_bgPen = ::CreatePen(PS_SOLID, 0, m_bgColor);
+    m_bgBrush = ::CreateSolidBrush(m_bgColor);
+
+    ::SelectObject(m_memDc, m_backBuffer);
+    ::SetBkMode(m_memDc, TRANSPARENT);
+}
+
+void SwapBuffer::ClearBuffer() {
+    HPEN oldPen = (HPEN)::SelectObject(m_memDc, m_bgPen);
+    HBRUSH oldBrush = (HBRUSH)::SelectObject(m_memDc, m_bgBrush);
+
+    ::Rectangle(m_memDc, m_clientRc.left, m_clientRc.top, m_clientRc.right, m_clientRc.top);
+
+    ::SelectObject(m_memDc, oldPen);
+    ::SelectObject(m_memDc, oldBrush);
+}
+
+void SwapBuffer::Present() {
+    int w = m_clientRc.right - m_clientRc.left;
+    int h = m_clientRc.bottom - m_clientRc.top;
+    ::BitBlt(m_mainDc, m_clientRc.left, m_clientRc.top, w, h,
+        m_memDc, m_clientRc.left, m_clientRc.top, SRCCOPY);
 }
